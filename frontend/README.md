@@ -1,73 +1,83 @@
-# React + TypeScript + Vite
+# Real-Time Delivery Tracking System - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend component of the Real-Time Delivery Tracking System, part of the Data Engineering (CO5173) course project. It provides an interactive UI for customers, drivers, and administrators.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The application simulates three primary user roles:
+* **Customer**: Can place orders, track the assigned driver on a real-time map, see dynamic ETA updates, and receive proximity notifications.
+* **Driver**: Receives order assignments, updates status (Accepted, Picking Up, In Transit, Arriving, Delivered), and simulates movement along a GPS route.
+* **Admin**: Views driver analytics, trip history playback, and heatmap of delivery demand.
 
-## React Compiler
+## Tech Stack
+* **Framework**: React 19
+* **Build Tool**: Vite
+* **Language**: TypeScript
+* **State Management**: Zustand
+* **Mapping Library**: Leaflet & React-Leaflet
+* **Styling**: CSS / React styling conventions
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Project Structure (Phase 1)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+frontend/src/
+├── features/
+│   └── tracking/
+│       ├── TrackingPage.tsx      # Main tracking page
+│       ├── TrackingMap.tsx       # Map with driver marker
+│       └── trackingStore.ts      # Zustand store
+├── shared/
+│   ├── hooks/
+│   │   └── useWebSocket.ts       # WS hook for real-time connection
+│   └── types/
+│       └── index.ts              # Shared types and interfaces
+├── App.tsx
+├── main.tsx
+└── index.css
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Prerequisites
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+* Node.js (v18 or higher)
+* npm (Node Package Manager)
+
+### Installation
+
+1. Navigate to the `frontend` directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+### Running the Application
+
+To start the development server:
+
+```bash
+npm run dev
+```
+
+The app will run at `http://localhost:5173` with Hot Module Replacement (HMR).
+
+### Building for Production
+
+To create a production build of the application:
+
+```bash
+npm run build
+```
+This generates the optimized static files in the `dist` directory.
+
+### Linting
+
+To check for any linting issues:
+
+```bash
+npm run lint
 ```
