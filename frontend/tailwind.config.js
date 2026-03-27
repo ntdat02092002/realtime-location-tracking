@@ -2,10 +2,145 @@
 export default {
   content: [
     "./index.html",
+    "./driver.html",
+    "./admin.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      // ─── Brand & Semantic Colors ──────────────────────────────────────────────
+      colors: {
+        brand: {
+          50:  '#FFF7ED',
+          100: '#FFEDD5',
+          200: '#FED7AA',
+          300: '#FDBA74',
+          400: '#FB923C',
+          500: '#F97316',   // primary
+          600: '#EA580C',
+          700: '#C2410C',
+          800: '#9A3412',
+          900: '#7C2D12',
+        },
+        // Role-specific accents
+        customer: {
+          50:  '#FFF7ED',
+          500: '#F97316',   // same as brand-500
+          600: '#EA580C',
+          700: '#C2410C',
+        },
+        driver: {
+          50:  '#EFF6FF',
+          500: '#3B82F6',   // blue
+          600: '#2563EB',
+          700: '#1D4ED8',
+        },
+        admin: {
+          50:  '#F5F3FF',
+          500: '#6366F1',   // indigo
+          600: '#4F46E5',
+          700: '#4338CA',
+        },
+        // Neutrals
+        surface: {
+          50:  '#FAFAFA',
+          100: '#F4F4F5',
+          200: '#E4E4E7',
+          300: '#D4D4D8',
+          400: '#A1A1AA',
+          500: '#71717A',
+          600: '#52525B',
+          700: '#3F3F46',
+          800: '#27272A',
+          900: '#18181B',
+        },
+      },
+
+      // ─── Typography ──────────────────────────────────────────────────────────
+      fontFamily: {
+        sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+      },
+      fontSize: {
+        '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
+      },
+
+      // ─── Shadows ─────────────────────────────────────────────────────────────
+      boxShadow: {
+        'card':        '0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07)',
+        'card-hover':  '0 4px 12px 0 rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.06)',
+        'navbar':      '0 1px 0 0 rgb(0 0 0 / 0.06)',
+        'glass':       '0 8px 32px 0 rgb(0 0 0 / 0.08)',
+        'glow-orange': '0 0 20px 0 rgb(249 115 22 / 0.25)',
+        'glow-blue':   '0 0 20px 0 rgb(59 130 246 / 0.25)',
+        'glow-indigo': '0 0 20px 0 rgb(99 102 241 / 0.25)',
+      },
+
+      // ─── Border Radius ───────────────────────────────────────────────────────
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem',
+      },
+
+      // ─── Animations ──────────────────────────────────────────────────────────
+      keyframes: {
+        'fade-in': {
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'slide-up': {
+          '0%':   { opacity: '0', transform: 'translateY(16px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'pulse-ring': {
+          '0%':   { transform: 'scale(0.95)', opacity: '0.8' },
+          '50%':  { transform: 'scale(1.05)', opacity: '0.4' },
+          '100%': { transform: 'scale(0.95)', opacity: '0.8' },
+        },
+        'spin-slow': {
+          '0%':   { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        'shimmer': {
+          '0%':   { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'bounce-in': {
+          '0%':   { transform: 'scale(0.9)', opacity: '0' },
+          '60%':  { transform: 'scale(1.05)', opacity: '1' },
+          '100%': { transform: 'scale(1)' },
+        },
+      },
+      animation: {
+        'fade-in':       'fade-in 0.3s ease-out',
+        'slide-up':      'slide-up 0.4s ease-out',
+        'pulse-ring':    'pulse-ring 2s ease-in-out infinite',
+        'spin-slow':     'spin-slow 3s linear infinite',
+        'shimmer':       'shimmer 2s linear infinite',
+        'bounce-in':     'bounce-in 0.35s ease-out',
+      },
+
+      // ─── Z-Index Scale ───────────────────────────────────────────────────────
+      zIndex: {
+        'base':   '0',
+        'raised':  '10',
+        'overlay':'50',
+        'modal':  '100',
+        'toast':  '200',
+      },
+
+      // ─── Spacing for map containers ──────────────────────────────────────────
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+      },
+
+      // ─── Backdrop blur ───────────────────────────────────────────────────────
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
   },
   plugins: [],
 }
