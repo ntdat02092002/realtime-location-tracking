@@ -1,0 +1,116 @@
+% ============================================================
+% SECTION 2: BUSINESS REQUIREMENTS
+% ============================================================
+\section{Yêu cầu nghiệp vụ}
+\label{sec:business-requirements}
+
+Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 thành viên nhóm. 8 yêu cầu này được chia thành 2 nhóm: \textbf{Real-Time Processing} (yêu cầu xử lý luồng thời gian thực) và \textbf{Data Management \& Analytics} (yêu cầu lưu trữ và phân tích dữ liệu).
+
+% --- 2.1 Real-Time Processing Requirements ---
+\subsection{Nhóm yêu cầu xử lý thời gian thực (Kafka Streams)}
+\label{sec:realtime-requirements}
+
+\begin{itemize}
+
+% --- RT1 ---
+    \item \textbf{Theo dõi vị trí thời gian thực (Real-Time Location Tracking)}
+    \begin{itemize}
+        \item \textbf{Input:} Luồng tọa độ GPS thô từ tài xế gửi đến Kafka topic \texttt{raw-location-events} (1 điểm/giây).
+        \item \textbf{Output:} Dữ liệu vị trí đã được kiểm chứng (filtered/validated) gửi qua WebSocket lên giao diện khách hàng.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams -- cần lọc tọa độ không hợp lệ (lat/lng nằm ngoài phạm vi, accuracy > 20m) và deduplicate các sự kiện gửi liên tục trong < 500ms. Điều này đòi hỏi \textbf{event-by-event processing} (xử lý từng sự kiện), không thể dùng batch processing.
+        \item \textbf{Cassandra:} Bảng \texttt{trip\_locations} lưu trữ GPS trace phục vụ phát lại lịch sử.
+    \end{itemize}
+
+    % --- RT2 ---
+    \item \textbf{Tính toán ETA động (Dynamic ETA Calculation)}
+    \begin{itemize}
+        \item \textbf{Input:} Luồng vị trí đã lọc + tọa độ điểm đích từ bảng \texttt{orders}.
+        \item \textbf{Output:} ETA (giây) được tính lại mỗi 10 giây: \texttt{ETA = (distance\_km / avg\_speed\_kmh) * 3600}.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{windowed aggregation} (tumbling window 30 giây) để tính tốc độ trung bình từ các GPS points gần nhất. Không thể tính đúng nếu dùng batch vì batch không đủ fresh để cập nhật ETA liên tục.
+    \end{itemize}
+
+    % --- RT3 ---
+    \item \textbf{Giám sát tốc độ \& cảnh báo (Speed Monitoring \& Alerts)}
+    \begin{itemize}
+        \item \textbf{Input:} Luồng vị trí đã lọc.
+        \item \textbf{Output:} Cảnh báo gửi đến Kafka topic \texttt{alerts} khi tốc độ tức thời vượt ngưỡng 60 km/h.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{stateful processing} -- sử dụng State Store (RocksDB) để lưu vị trí GPS trước đó của mỗi tài xế, tính velocity = distance/time\_delta. Chỉ có stream processing mới so sánh được 2 điểm liên tiếp trong thời gian thực.
+    \end{itemize}
+
+    % --- RT4 ---
+    \item \textbf{Cảnh báo khoảng cách - Geofencing (Proximity Alerts)}
+    \begin{itemize}
+        \item \textbf{Input:} Luồng vị trí + bảng tra cứu tọa độ điểm đích (KTable).
+        \item \textbf{Output:} Cảnh báo khi tài xế cách điểm giao < 500m.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams \textbf{Stream-Table Join} -- join luồng location với KTable chứa tọa độ đích. Mỗi khi có location event mới, hệ thống tra cứu điểm đích tương ứng và tính khoảng cách Haversine. Đây là pattern không thể thực hiện với batch processing.
+    \end{itemize}
+
+\end{itemize}
+
+% --- 2.2 Data Management & Analytics Requirements ---
+\subsection{Nhóm yêu cầu quản lý dữ liệu \& phân tích (Cassandra)}
+\label{sec:analytics-requirements}
+
+\begin{itemize}
+
+% --- DA5 ---
+\item \textbf{Phát lại lịch sử hành trình (Trip History \& Playback)}
+\begin{itemize}
+    \item \textbf{Bảng truy vấn:} \texttt{trip\_locations} — partitioned by \texttt{trip\_id}, clustered by \texttt{timestamp DESC}.
+    \item \textbf{Query:} \texttt{SELECT * FROM trip\_locations WHERE trip\_id = ? ORDER BY timestamp ASC}.
+    \item \textbf{Lý do cần lưu trữ:} Dữ liệu GPS trace cần được giữ lại vô thời hạn để phục vụ điều tra tranh chấp, quyết toán chi phí, và tuân thủ pháp luật. Mỗi chuyến đi có thể có hàng nghìn điểm GPS.
+\end{itemize}
+
+% --- DA6 ---
+\item \textbf{Phân tích hiệu suất tài xế (Driver Performance Analytics)}
+\begin{itemize}
+    \item \textbf{Bảng truy vấn:} \texttt{driver\_analytics} — partitioned by \texttt{driver\_id}, clustered by \texttt{week\_start\_date DESC}.
+    \item \textbf{Query:} Tổng hợp từ \texttt{trip\_metadata}: \texttt{SUM(total\_distance), AVG(average\_speed), COUNT(speeding\_violations)}.
+    \item \textbf{Lý do cần lưu trữ:} Quản lý đội xe cần báo cáo hiệu suất theo tuần để đánh giá tài xế, xác định người có tỷ lệ vi phạm cao, và tối ưu lịch trình.
+\end{itemize}
+
+% --- DA7 ---
+\item \textbf{Tính cước phí giao hàng tự động (Automated Delivery Cost Calculation)}
+\begin{itemize}
+    \item \textbf{Bảng truy vấn:} \texttt{trip\_metadata} — lưu \texttt{total\_distance} (km) và \texttt{total\_duration} (phút).
+    \item \textbf{Công thức:} \texttt{cost = 3.00 + (0.50 × distance\_km) + (0.10 × duration\_min)}.
+    \item \textbf{Lý do cần lưu trữ:} Cước phí phải được tính chính xác từ GPS trace thực tế, không phải ước lượng. Dữ liệu cần được lưu để khách hàng và tài xế có thể kiểm chứng.
+\end{itemize}
+
+% --- DA8 ---
+\item \textbf{Bản đồ nhiệt khu vực dịch vụ (Service Area Heatmaps)}
+\begin{itemize}
+    \item \textbf{Bảng truy vấn:} \texttt{trip\_locations} — query theo khoảng thời gian \texttt{timestamp}, nhóm theo geohash hoặc cluster tọa độ.
+    \item \textbf{Query pattern:} \texttt{SELECT latitude, longitude FROM trip\_locations WHERE ...}.
+    \item \textbf{Lý do cần lưu trữ:} Quản trị viên cần biết khu vực nào có nhu cầu cao để tối ưu phân bổ tài xế, và khu vực nào có ít đơn hàng để điều chỉnh chiến lược marketing.
+\end{itemize}
+
+\end{itemize}
+
+\bigskip
+\begin{table}[H]
+\centering
+\caption{Tổng hợp 8 yêu cầu nghiệp vụ}
+\label{tab:requirements-summary}
+\begin{tabular}{|p{1.5cm}|p{4cm}|p{3.5cm}|p{3.5cm}|}
+\hline
+\textbf{ID} & \textbf{Tên yêu cầu} & \textbf{Công nghệ chính} & \textbf{Output} \\
+\hline
+RT1 & Theo dõi vị trí real-time & Kafka Streams + Cassandra & WebSocket → Customer UI \\
+\hline
+RT2 & Tính ETA động & Kafka Streams (windowed agg) & ETA seconds → UI \\
+\hline
+RT3 & Giám sát tốc độ & Kafka Streams (stateful) & Alert → Admin Dashboard \\
+\hline
+RT4 & Geofencing alerts & Kafka Streams (KTable join) & Alert → Customer notification \\
+\hline
+DA5 & Phát lại hành trình & Cassandra & Route animation → Admin UI \\
+\hline
+DA6 & Phân tích hiệu suất & Cassandra & Dashboard charts → Admin UI \\
+\hline
+DA7 & Tính cước tự động & Cassandra & Trip cost → UI receipt \\
+\hline
+DA8 & Bản đồ nhiệt & Cassandra & Heatmap overlay → Admin UI \\
+\hline
+\end{tabular}
+\end{table}

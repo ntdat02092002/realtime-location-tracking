@@ -1,0 +1,76 @@
+z% ============================================================
+% SECTION 1: INTRODUCTION & CONTEXT
+% ============================================================
+\section{Giới thiệu \& Bối cảnh}
+\label{sec:introduction}
+
+% --- 1.1 Application Domain ---
+\subsection{Lĩnh vực ứng dụng}
+\label{sec:application-domain}
+
+Lĩnh vực \textbf{Vận tải \& Quản lý Chuỗi Cung ứng} (Transportation \& Supply Chain Management) là một trong những ngành có khối lượng dữ liệu lớn nhất hiện nay, đặc biệt với sự bùng nổ của các nền tảng giao hàng và vận chuyển trực tuyến. Các hệ thống như \textbf{Grab}, \textbf{Uber Eats}, \textbf{ShopeeFood}, và \textbf{Gojek} đều dựa trên nền tảng theo dõi vị trí thời gian thực để mang lại trải nghiệm tốt nhất cho khách hàng. Việt Nam, với hơn 60 triệu người dùng Internet và tốc độ tăng trưởng thương mại điện tử >20\% mỗi năm, là một thị trường đầy tiềm năng cho các ứng dụng giao hàng thông minh.
+
+Dự án này xây dựng một \textbf{Hệ thống theo dõi giao hàng thời gian thực} (Real-Time Delivery Tracking System) — một ứng dụng data-intensive, event-driven, mô phỏng các dịch vụ giao hàng thực tế như Uber Eats hoặc Grab Food. Hệ thống cho phép khách hàng đặt đơn hàng, theo dõi tài xế trên bản đồ, và nhận các thông báo động về ETA (Estimated Time of Arrival) theo thời gian thực.
+
+% --- 1.2 Big Data Challenge ---
+\subsection{Thách thức Big Data}
+\label{sec:big-data-challenge}
+
+Dữ liệu vị trí trong hệ thống giao hàng thuộc loại \textbf{Big Data} với đặc trưng cơ bản:
+
+\subsubsection{Velocity (Tốc độ)}
+Mỗi tài xế gửi tọa độ GPS cứ sau mỗi giây. Với 1.000 tài xế hoạt động đồng thời, hệ thống phải xử lý:
+\[
+1{,}000 \text{ drivers} \times 1 \text{ GPS ping/driver/s} = 86{,}400{,}000 \text{ writes/day}
+\]
+Nếu mỗi bản ghi GPS có kích thước ~200 bytes, hệ thống cần ghi nhận khoảng \textbf{17.28 GB dữ liệu mỗi ngày}. Thách thức cốt lõi là đảm bảo pipeline không có độ trễ (lag), tức là dữ liệu phải được xử lý và hiển thị lên bản đồ của khách hàng trong vòng dưới 500ms kể từ lúc tài xế gửi tín hiệu.
+
+Để đáp ứng yêu cầu về Velocity, hệ thống cần:
+\begin{itemize}
+    \item \textbf{Stream Processing thời gian thực} thay vì batch processing — Kafka Streams xử lý từng sự kiện ngay khi nó đến, không cần đợi đủ batch.
+    \item \textbf{Kiến trúc không đồng bộ} (asynchronous) — tài xế gửi dữ liệu mà không cần chờ phản hồi từ hệ thống xử lý.
+\end{itemize}
+
+\subsubsection{Volume (Khối lượng)}
+Dữ liệu lịch sử hành trình cần được lưu trữ trong nhiều năm để phục vụ:
+\begin{itemize}
+    \item Phân tích hiệu suất tài xế theo tuần/tháng
+    \item Điều tra tranh chấp (dispute resolution) khi khách hàng khiếu nại
+    \item Tuân thủ pháp luật (compliance) về dữ liệu hành trình
+\end{itemize}
+Với 1.000 tài xế × 10 giờ/ngày × 3.600 giây = 36 triệu điểm GPS/ngày, sau 1 năm hệ thống cần lưu trữ khoảng \textbf{13 tỷ bản ghi}. Yêu cầu về Volume đòi hỏi một cơ sở dữ liệu có khả năng ghi (write throughput) cực cao, mở rộng ngang (horizontal scaling) dễ dàng, và tối ưu cho truy vấn theo thời gian (time-series queries).
+
+Apache Cassandra là lựa chọn tối ưu nhờ khả năng ghi 1M+ write/sec với kiến trúc masterless, phân phối dữ liệu đều trên các node.
+
+% --- 1.3 Stakeholders ---
+\subsection{Các bên liên quan}
+\label{sec:stakeholders}
+
+\begin{table}[H]
+\centering
+\caption{Các nhóm người dùng và nhu cầu dữ liệu}
+\label{tab:stakeholders}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Nhóm} & \textbf{Vấn đề cần giải quyết} & \textbf{Cách hệ thống hỗ trợ} \\
+\hline
+\textbf{Khách hàng} & Không biết tài xế đang ở đâu, ETA không chính xác & Xem vị trí tài xế real-time trên bản đồ, thông báo khi tài xế đến gần \\
+\hline
+\textbf{Tài xế} & Không nhận đơn hàng tự động, không theo dõi được thu nhập & Nhận đơn phân công, cập nhật trạng thái giao hàng, tính cước phí tự động \\
+\hline
+\textbf{Quản trị viên} & Không biết ai vi phạm tốc độ, không thấy xu hướng hoạt động & Dashboard phân tích hiệu suất, cảnh báo speeding, heatmap nhu cầu \\
+\hline
+\end{tabular}
+\end{table}
+
+\bigskip
+\noindent
+\textbf{Khách hàng} (Customer) — Người dùng cuối đặt đơn giao hàng. Họ muốn biết chính xác tài xế đang ở đâu và bao giờ đơn hàng đến. Hệ thống cung cấp bản đồ real-time và thông báo đẩy (push notification) khi tài xế cách điểm giao <500m.
+
+\bigskip
+\noindent
+\textbf{Tài xế} (Driver) — Người giao hàng nhận đơn và cập nhật trạng thái. Hệ thống tự động tính cước phí dựa trên GPS trace thực tế sau khi hoàn thành chuyến.
+
+\bigskip
+\noindent
+\textbf{Quản trị viên} (Admin) — Người quản lý đội xe, phân tích dữ liệu. Hệ thống cung cấp dashboard với biểu đồ hiệu suất, cảnh báo vi phạm tốc độ, và bản đồ nhiệt (heatmap) các khu vực có nhu cầu cao.

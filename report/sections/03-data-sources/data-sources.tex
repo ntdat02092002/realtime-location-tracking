@@ -1,0 +1,198 @@
+% ============================================================
+% SECTION 3: DATA SOURCES & CHARACTERISTICS
+% ============================================================
+\section{Nguồn dữ liệu \& Đặc trưng dữ liệu}
+\label{sec:data-sources}
+
+% --- 3.1 Data Ingestion Strategy ---
+\subsection{Chiến lược nhập dữ liệu}
+\label{sec:ingestion-strategy}
+
+Dữ liệu GPS được mô phỏng bằng cách phát lại các tệp \textbf{GPX} (GPS Exchange Format) — định dạng chuẩn XML chứa các điểm track point. Mỗi tệp GPX biểu diễn một lộ trình thực tế trong thành phố Hồ Chí Minh, được phát lại với tốc độ thời gian thực (1 giây thực = 1 giây trong GPX).
+
+\subsubsection{GPX Parser (Golang)}
+Cấu trúc GPX được parse bằng thư viện tiêu chuẩn \texttt{encoding/xml} của Golang. Đoạn code dưới đây minh họa cách hệ thống trích xuất các trackpoints từ XML:
+
+\begin{lstlisting}[language=Go, caption={GPX Parser — \texttt{internal/gpx/parser.go}}, label={lst:gpx-parser}]
+package gpx
+
+import (
+    "encoding/xml"
+    "os"
+    "time"
+)
+
+type TrackPoint struct {
+    Lat  float64   `xml:"lat,attr"`
+    Lon  float64   `xml:"lon,attr"`
+    Time time.Time `xml:"time"`
+}
+
+func Parse(path string) ([]TrackPoint, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, err
+    }
+
+    var gpx struct {
+        Tracks []struct {
+            Segs []struct {
+                Points []TrackPoint `xml:"trkpt"`
+            } `xml:"trkseg"`
+        } `xml:"trk"`
+    }
+
+    if err := xml.Unmarshal(data, &gpx); err != nil {
+        return nil, err
+    }
+
+    var all []TrackPoint
+    for _, trk := range gpx.Tracks {
+        for _, seg := range trk.Segs {
+            all = append(all, seg.Points...)
+        }
+    }
+    return all, nil
+}
+\end{lstlisting}
+
+Cấu trúc XML của tệp GPX sử dụng các thẻ lồng nhau: \texttt{gpx → trk → trkseg → trkpt}, trong đó mỗi \texttt{trkpt} chứa tọa độ \texttt{lat}, \texttt{lon} và dấu thời gian \texttt{time}. Hàm \texttt{Parse()} duyệt đệ quy qua tất cả các đoạn track và thu thập toàn bộ các điểm GPS vào một slice.
+
+\subsubsection{GPS Simulation Engine}
+Sau khi parse, chương trình \texttt{cmd/simulator/main.go} phát lại từng điểm GPS với độ trễ có thể cấu hình:
+
+\begin{lstlisting}[language=Go, caption={Driver Simulator — \texttt{cmd/simulator/main.go}}, label={lst:simulator}]
+package main
+
+import (
+    "context"
+    "flag"
+    "log"
+    "time"
+
+    "delivery-tracking/internal/gpx"
+    "delivery-tracking/internal/kafka"
+    "delivery-tracking/internal/model"
+)
+
+func main() {
+    gpxFile := flag.String("gpx-file", "route.gpx", "Path to GPX file")
+    driverID := flag.String("driver-id", "D001", "Driver ID")
+    tripID := flag.String("trip-id", "T001", "Trip ID")
+    orderID := flag.String("order-id", "O001", "Order ID")
+    brokers := flag.String("brokers", "localhost:9092", "Kafka brokers")
+    interval := flag.Int("interval", 1000, "Milliseconds between points")
+    flag.Parse()
+
+    points, err := gpx.Parse(*gpxFile)
+    if err != nil {
+        log.Fatalf("Parse GPX failed: %v", err)
+    }
+
+    producer, err := kafka.NewProducer(*brokers)
+    if err != nil {
+        log.Fatalf("Create producer failed: %v", err)
+    }
+    defer producer.Close()
+
+    ctx := context.Background()
+    for i, pt := range points {
+        event := model.LocationEvent{
+            DriverID:  *driverID,
+            TripID:    *tripID,
+            OrderID:   *orderID,
+            Latitude:  pt.Lat,
+            Longitude: pt.Lon,
+            Timestamp: pt.Time,
+        }
+
+        if err := producer.Publish(ctx, event); err != nil {
+            log.Printf("Publish failed (point %d): %v", i, err)
+            continue
+        }
+
+        if i < len(points)-1 {
+            time.Sleep(time.Duration(*interval) * time.Millisecond)
+        }
+    }
+    log.Println("Playback complete")
+}
+\end{lstlisting}
+
+\bigskip
+\noindent
+\textbf{Cấu hình tham số:}
+\begin{itemize}
+    \item \texttt{--gpx-file}: Đường dẫn đến tệp GPX (mặc định: \texttt{route.gpx})
+    \item \texttt{--driver-id}: Mã tài xế (mặc định: \texttt{D001})
+    \item \texttt{--trip-id}: Mã chuyến đi (mặc định: \texttt{T001})
+    \item \texttt{--interval}: Thời gian giữa 2 điểm GPS, tính bằng ms (mặc định: \texttt{1000})
+\end{itemize}
+
+% --- 3.2 Data Characteristics ---
+\subsection{Đặc trưng dữ liệu}
+\label{sec:data-characteristics}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{images/gpx-sample.png}
+    \caption[Vị trí các điểm GPS trong tệp GPX]{Vị trí các điểm GPS trong tệp GPX Evening\_Ride.gpx trên bản đồ Hồ Chí Minh}
+    \label{fig:gpx-sample}
+\end{figure}
+
+\subsubsection{JSON Payload Schema}
+Mỗi sự kiện GPS được serialize thành JSON và gửi đến Kafka topic \texttt{raw-location-events}:
+
+\begin{lstlisting}[language=JSON, caption={JSON payload của LocationEvent — mẫu event gửi đến Kafka}, label={lst:json-payload}]
+{
+  "driver_id": "D001",
+  "trip_id": "T001",
+  "order_id": "O001",
+  "latitude": 10.762622,
+  "longitude": 106.660172,
+  "timestamp": "2026-04-07T10:15:32Z"
+}
+\end{lstlisting}
+
+\bigskip
+\noindent
+\textbf{Các trường dữ liệu:}
+\begin{itemize}
+    \item \texttt{driver\_id}: Mã định danh tài xế — dùng làm partition key trong Kafka để đảm bảo thứ tự sự kiện.
+    \item \texttt{trip\_id}: Mã chuyến đi — liên kết tất cả các điểm GPS với 1 chuyến giao hàng.
+    \item \texttt{order\_id}: Mã đơn hàng — liên kết chuyến đi với đơn giao hàng của khách.
+    \item \texttt{latitude/longitude}: Tọa độ WGS84 (EPSG:4326).
+    \item \texttt{timestamp}: Thời điểm ghi nhận theo chuẩn ISO 8601 (UTC).
+\end{itemize}
+
+\bigskip
+\begin{table}[H]
+\centering
+\caption{Đặc trưng dữ liệu GPS trong hệ thống}
+\label{tab:data-characteristics}
+\begin{tabular}{|p{3.5cm}|p{6cm}|}
+\hline
+\textbf{Thuộc tính} & \textbf{Mô tả chi tiết} \\
+\hline
+\textbf{Loại dữ liệu} & Time-series, append-only, high-frequency \\
+\hline
+\textbf{Tần suất ghi} & 1 điểm GPS/tài xế/giây (có thể cấu hình) \\
+\hline
+\textbf{Kích thước bản ghi} & ~120–200 bytes/JSON event \\
+\hline
+\textbf{Volume} & ~17 GB/ngày (1.000 tài xế) \\
+\hline
+\textbf{Velocity} & Sub-second latency end-to-end \\
+\hline
+\textbf{Partitioning} & Theo \texttt{driver\_id} trong Kafka \\
+\hline
+\end{tabular}
+\end{table}
+
+\bigskip
+\noindent
+\textbf{Tính chất time-series:} Dữ liệu GPS luôn ghi mới, không sửa đổi (append-only), và được sắp xếp theo thời gian. Điều này phù hợp với mô hình dữ liệu của Cassandra (partition by entity ID + clustering by timestamp) và Kafka (log-based, immutable).
+
+\bigskip
+\noindent
+\textbf{Kiến trúc đồng thời (Concurrency):} Golang chạy mỗi tài xế trong một goroutine riêng (~2KB stack mỗi goroutine so với ~1MB của thread OS), cho phép mô phỏng hàng nghìn tài xế đồng thời từ một máy tính xách tay.

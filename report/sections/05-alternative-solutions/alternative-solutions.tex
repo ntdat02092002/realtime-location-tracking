@@ -1,0 +1,144 @@
+% ============================================================
+% SECTION 5: ALTERNATIVE SOLUTIONS (BENCHMARKING)
+% ============================================================
+\section{Các giải pháp thay thế \& So sánh đánh giá}
+\label{sec:alternative-solutions}
+
+% --- 5.1 Data Processing Comparison ---
+\subsection{So sánh các giải pháp xử lý dữ liệu}
+\label{sec:processing-comparison}
+
+Hai công nghệ xử lý luồng phổ biến nhất được so sánh: \textbf{Apache Kafka Streams} (được chọn) và \textbf{Apache Spark Streaming} (giải pháp thay thế).
+
+\begin{table}[H]
+\centering
+\caption[So sánh Kafka Streams vs Spark Streaming]{So sánh Kafka Streams vs Spark Streaming trong bối cảnh Real-Time Delivery Tracking}
+\label{tab:streams-comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|p{3cm}|p{5.5cm}|p{5.5cm}|}
+\hline
+\textbf{Tiêu chí} & \textbf{Chọn: Kafka Streams (Java)} & \textbf{Thay thế: Spark Streaming (Scala/Python)} \\
+\hline
+\textbf{Độ trễ (Latency)} &
+\textbf{Microseconds} — xử lý từng record ngay khi đến. Tối ưu cho ETA real-time (< 500ms E2E). &
+\textbf{Seconds} — micro-batching (mặc định 0.5–2s batch interval). Không đủ fresh cho ETA động. \\
+\hline
+\textbf{Quản lý State} &
+\textbf{Built-in} — RocksDB state stores tích hợp sẵn. Lưu prev GPS point, destination lookup đều có API trực tiếp. &
+\textbf{External required} — cần Redis, Cassandra, hoặc checkpointed state. Thêm component = thêm điểm lỗi. \\
+\hline
+\textbf{Deployment} &
+\textbf{Standalone JAR} — chạy trong bất kỳ JVM process nào. Không cần cluster manager. &
+\textbf{Complex} — cần Spark cluster (master + worker nodes). Overhead vận hành lớn cho demo/small scale. \\
+\hline
+\textbf{Exactly-Once} &
+\textbf{Native} — Kafka transactions đảm bảo mỗi GPS event chỉ được xử lý đúng 1 lần. Quan trọng cho billing. &
+\textbf{Best-effort} — có checkpoint nhưng không đảm bảo exactly-once cho external sinks (Cassandra). \\
+\hline
+\textbf{Kafka Integration} &
+\textbf{Seamless} — là thư viện chính hãng của Kafka, có sẵn Serde cho JSON/Avro. &
+\textbf{Requires connector} — dùng Kafka Consumer Producer API bên dưới, thêm abstraction layer. \\
+\hline
+\textbf{Use Case Fit} &
+\textbf{Perfect match} — ETA sub-second, proximity alert < 500ms, speed monitoring real-time. &
+\textbf{Overkill} — tốt cho batch analytics (ETL, ML training), không tối ưu cho event-by-event. \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\bigskip
+\noindent
+\textbf{Kết luận:} Kafka Streams là lựa chọn tối ưu cho bài toán này vì:
+\begin{itemize}
+    \item Độ trễ microsecond cho phép tính ETA real-time mà Spark Streaming không thể đạt được với batch model.
+    \item State stores tích hợp (RocksDB) đơn giản hóa việc lưu prev GPS point và destination lookup — không cần hệ thống state ngoài.
+    \item Exactly-once semantics quan trọng cho tính cước phí chính xác.
+    \item Deployment đơn giản: chỉ cần chạy JAR, không cần Spark cluster.
+\end{itemize}
+
+Spark Streaming có thể phù hợp hơn khi cần xử lý batch lịch sử kết hợp (ví dụ: huấn luyện ML model cho ETA prediction dựa trên dữ liệu 1 năm), nhưng trong phạm vi demo real-time, Kafka Streams vượt trội.
+
+% --- 5.2 Data Management Comparison ---
+\subsection{So sánh các giải pháp quản lý dữ liệu}
+\label{sec:storage-comparison}
+
+Hai giải pháp lưu trữ dữ liệu được so sánh: \textbf{Apache Cassandra} (được chọn) và \textbf{PostgreSQL} (giải pháp thay thế).
+
+\begin{table}[H]
+\centering
+\caption[So sánh Cassandra vs PostgreSQL]{So sánh Apache Cassandra vs PostgreSQL cho hệ thống GPS Tracking}
+\label{tab:storage-comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|p{3cm}|p{5.5cm}|p{5.5cm}|}
+\hline
+\textbf{Tiêu chí} & \textbf{Chọn: Apache Cassandra} & \textbf{Thay thế: PostgreSQL} \\
+\hline
+\textbf{Write Throughput} &
+\textbf{1M+ writes/sec} — kiến trúc masterless, mọi node đều ghi được, mở rộng tuyến tính. Phù hợp: 17 GB GPS data/ngày. &
+\textbf{10k–50k writes/sec} — single primary bottleneck. Cần partitioning thủ công (Sharding) để scale. \\
+\hline
+\textbf{Time-Series Queries} &
+\textbf{Native} — clustering key \texttt{timestamp} tối ưu cho range scan theo thời gian. Được thiết kế cho use case này. &
+\textbf{Requires tuning} — cần bảng partitioned (PARTITION BY RANGE), index trên timestamp. Thủ công và dễ lỗi. \\
+\hline
+\textbf{Scalability Model} &
+\textbf{Horizontal} — thêm node = tăng capacity tuyến tính. Không cần downtime. Tự cân bằng (rebalancing) tự động. &
+\textbf{Vertical + Sharding} — cần máy lớn hơn (expensive), hoặc sharding thủ công (application-level). Rủi ro hotspot. \\
+\hline
+\textbf{Schema Flexibility} &
+\textbf{Flexible per partition} — có thể thêm cột mà không block writes. Phù hợp khi data model còn thay đổi. &
+\textbf{Rigid} — ALTER TABLE khóa bảng (trên large tables). Cần migration tool chính thức (Flyway/Liquibase). \\
+\hline
+\textbf{Availability} &
+\textbf{No SPOF} — kiến trúc masterless, không có single point of failure. Tự động failover. &
+\textbf{Primary-Replica} — primary node là SPOF. Failover cần manual intervention hoặc tool bổ sung. \\
+\hline
+\textbf{Read Performance} &
+\textbf{Fast on partition} — đọc 1 partition (trip\_id) rất nhanh. Đọc cross-partition (analytics) chậm. &
+\textbf{Fast on small tables} — indexes B-tree hiệu quả. Scan toàn bảng (full table scan) chậm trên large dataset. \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+\bigskip
+\noindent
+\textbf{Kết luận:} Cassandra là lựa chọn tối ưu cho bài toán này vì:
+
+\begin{itemize}
+    \item \textbf{Write-heavy workload phù hợp bản chất GPS data} — 86 triệu GPS points/ngày là write-heavy, không phải read-heavy. Cassandra được thiết kế cho usecase này.
+    \item \textbf{Time-series data model tự nhiên} — clustering key \texttt{timestamp} và partition key \texttt{trip\_id} phản ánh chính xác query pattern cần thiết (lấy toàn bộ GPS trace của 1 chuyến).
+    \item \textbf{Không có Single Point of Failure} — hệ thống giao hàng cần uptime cao; Cassandra đảm bảo availability với kiến trúc masterless.
+    \item \textbf{Linear scaling} — khi số tài xế tăng (1.000 → 10.000), chỉ cần thêm node mà không cần thay đổi code.
+\end{itemize}
+
+PostgreSQL phù hợp hơn khi: (1) tổng data size nhỏ và có thể chạy trên 1 server mạnh; (2) cần complex joins (ví dụ: JOIN với bảng users, restaurants); (3) cần ACID transactions mạnh mẽ cho financial data. Trong phạm vi hệ thống GPS tracking này, Cassandra vượt trội về write throughput và horizontal scalability.
+
+% --- 5.3 Ingestion Comparison ---
+\subsection{So sánh giải pháp nhập liệu (Tùy chọn)}
+\label{sec:ingestion-comparison}
+
+\bigskip
+\begin{table}[H]
+\centering
+\caption[So sánh Golang vs Python cho Ingestion Layer]{So sánh Golang vs Python cho GPS Data Ingestion}
+\label{tab:ingestion-comparison}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Tiêu chí} & \textbf{Chọn: Golang} & \textbf{Alt: Python} \\
+\hline
+\textbf{Concurrency} &
+\textbf{Goroutines} — ~2KB stack, chạy 10.000+ đồng thời. &
+\textbf{Threads} — ~1MB stack, bị GIL giới hạn, max ~400 threads/20GB RAM. \\
+\hline
+\textbf{Type Safety} &
+\textbf{Strong} — struct định nghĩa tại compile-time, JSON serialize an toàn. &
+\textbf{Weak} — dễ sai kiểu (string vs float cho lat/lng) gây malformed Kafka messages. \\
+\hline
+\textbf{Performance} &
+\textbf{Compiled} — parse XML + serialize JSON cực nhanh. &
+\textbf{Interpreted} — chậm hơn cho file parsing quy mô lớn. \\
+\hline
+\end{tabular}
+\end{table}

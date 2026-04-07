@@ -1,0 +1,285 @@
+% ============================================================
+% SECTION 6: APPLICATION DEVELOPMENT
+% ============================================================
+\section{Phát triển Ứng dụng}
+\label{sec:application-development}
+
+% --- 6.1 Backend API ---
+\subsection{Backend API Server (Golang)}
+\label{sec:backend-api}
+
+Backend API được xây dựng bằng \textbf{Golang} với framework \textbf{Gin} cho REST endpoints và package \texttt{gorilla/websocket} cho WebSocket hub.
+
+\subsubsection{REST API Endpoints}
+\bigskip
+\begin{table}[H]
+\centering
+\caption[Các REST API Endpoints chính]{Danh sách REST API Endpoints}
+\label{tab:rest-api}
+\begin{tabular}{|p{3cm}|p{2.5cm}|p{6cm}|}
+\hline
+\textbf{Endpoint} & \textbf{Method} & \textbf{Mô tả} \\
+\hline
+\texttt{/api/orders} & POST & Tạo đơn hàng mới (Customer) \\
+\hline
+\texttt{/api/orders/:id} & GET & Lấy thông tin đơn hàng \\
+\hline
+\texttt{/api/orders/:id/status} & PUT & Cập nhật trạng thái đơn hàng (Driver) \\
+\hline
+\texttt{/api/trips/:id} & GET & Lấy tóm tắt chuyến đi \\
+\hline
+\texttt{/api/trips/:id/route} & GET & Lấy full GPS trace cho playback \\
+\hline
+\texttt{/api/drivers/:id/analytics} & GET & Lấy thống kê hiệu suất tuần \\
+\hline
+\texttt{/api/drivers/:id/alerts} & GET & Lấy lịch sử cảnh báo \\
+\hline
+\texttt{/api/admin/heatmap} & GET & Lấy dữ liệu density cho heatmap \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{WebSocket Hub — Real-Time Push}
+\bigskip
+\begin{lstlisting}[language=Go, caption={WebSocket Hub — \texttt{hub.go}: quản lý kết nối và broadcast real-time}, label={lst:websocket-hub}]
+package websocket
+
+import (
+    "strings"
+    "time"
+    "github.com/gorilla/websocket"
+)
+
+type Hub struct {
+    clients    map[*Client]bool       // all connected clients
+    driverSubs map[string][]*Client  // driver_id → subscribed clients
+    register   chan *Client
+    unregister chan *Client
+    broadcast  chan []byte
+}
+
+type Client struct {
+    hub      *Hub
+    conn     *websocket.Conn
+    send     chan []byte
+    driverID string
+}
+
+func (h *Hub) Run() {
+    for {
+        select {
+        case client := <-h.register:
+            h.clients[client] = true
+            if clients, ok := h.driverSubs[client.driverID]; ok {
+                h.driverSubs[client.driverID] = append(clients, client)
+            } else {
+                h.driverSubs[client.driverID] = []*Client{client}
+            }
+
+        case client := <-h.unregister:
+            if _, ok := h.clients[client]; ok {
+                delete(h.clients, client)
+                delete(h.driverSubs, client.driverID)
+                close(client.send)
+            }
+
+        case message := <-h.broadcast:
+            // message format: "driverID:JSONpayload"
+            parts := strings.SplitN(string(message), ":", 2)
+            if len(parts) < 2 { continue }
+            driverID, payload := parts[0], parts[1]
+            for _, client := range h.driverSubs[driverID] {
+                select {
+                case client.send <- []byte(payload):
+                default:
+                    close(client.send)
+                    delete(h.driverSubs, driverID)
+                }
+            }
+        }
+    }
+}
+
+// StartKafkaConsumer -- reads from Kafka and pushes to hub
+func (h *Hub) StartKafkaConsumer(brokers []string) {
+    consumer, _ := kafka.NewConsumer(kafka.ConfigMap{
+        "bootstrap.servers":  brokers[0],
+        "group.id":          "websocket-consumer",
+        "auto.offset.reset":  "latest",
+    })
+    defer consumer.Close()
+    consumer.SubscribeTopics([]string{"processed-updates"}, nil)
+
+    for {
+        msg, err := consumer.ReadMessage(5 * time.Second)
+        if err == nil {
+            h.broadcast <- msg.Value
+        }
+    }
+}
+\end{lstlisting}
+
+\bigskip
+\begin{lstlisting}[language=Go, caption={Trip Completion — Tính cước phí từ GPS trace (\texttt{internal/cassandra/trips.go})}, label={lst:trip-completion}]
+func (c *Client) CompleteTrip(tripID string) error {
+    // 1. Get all GPS points for the trip
+    points, err := c.GetTripRoute(tripID)
+    if err != nil || len(points) == 0 {
+        return errors.New("no GPS points for trip")
+    }
+
+    // 2. Calculate statistics
+    startTime     := points[0].Timestamp
+    endTime       := points[len(points)-1].Timestamp
+    durationSec   := int(endTime.Sub(startTime).Seconds())
+    totalDistance := CalculateTripDistance(points)  // Haversine sum
+
+    var maxSpeed, totalSpeed float64
+    speedingViolations := 0
+    for _, p := range points {
+        if p.Speed > maxSpeed { maxSpeed = p.Speed }
+        if p.Speed > 60       { speedingViolations++ }
+        totalSpeed += p.Speed
+    }
+    avgSpeed := totalSpeed / float64(len(points))
+
+    // 3. Pricing: cost = 3.00 + (0.50 * km) + (0.10 * min)
+    const baseFare     = 3.00
+    const distRate    = 0.50  // per km
+    const timeRate    = 0.10  // per minute
+    durationMin := float64(durationSec) / 60.0
+    tripCost := baseFare + (distRate * totalDistance) + (timeRate * durationMin)
+    tripCost = math.Round(tripCost*100) / 100  // round to 2dp
+
+    // 4. Update trip_metadata
+    session.Query(`UPDATE trip_metadata SET
+        end_time=?, total_distance=?, total_duration=?,
+        average_speed=?, max_speed=?, speeding_violations=?,
+        trip_cost=?, status='COMPLETED' WHERE trip_id=?`,
+        endTime, totalDistance, durationSec, avgSpeed,
+        maxSpeed, speedingViolations, tripCost, tripID).Exec()
+
+    log.Printf("Trip %s: cost=%.2f, dist=%.2fkm, dur=%ds",
+                tripID, tripCost, totalDistance, durationSec)
+    return nil
+}
+\end{lstlisting}
+
+\bigskip
+\noindent
+\textbf{Hoạt động của WebSocket Hub:}
+\begin{itemize}
+    \item Client kết nối WebSocket, gửi: \texttt{\{"action": "subscribe", "driver\_id": "D001"\}}
+    \item Hub đăng ký client vào map \texttt{driverSubs["D001"]}.
+    \item Kafka consumer đọc message từ \texttt{processed-updates} liên tục.
+    \item Consumer gửi đến hub qua channel \texttt{broadcast}.
+    \item Hub tra cứu \texttt{driverSubs} và push đến tất cả client đã subscribe.
+    \item Browser nhận JSON và cập nhật vị trí marker trên bản đồ.
+\end{itemize}
+
+% --- 6.2 Frontend Interface ---
+\subsection{Giao diện người dùng (React + Leaflet)}
+\label{sec:frontend}
+
+Frontend được xây dựng bằng \textbf{React} (Vite) kết hợp \textbf{Leaflet} để hiển thị bản đồ OpenStreetMap.
+
+\bigskip
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/frontend-customer.png}
+    \caption[Giao diện khách hàng — Theo dõi tài xế real-time]{Giao diện Customer Dashboard — Bản đồ theo dõi vị trí tài xế real-time với marker di chuyển mỗi giây}
+    \label{fig:frontend-customer}
+\end{figure}
+
+\bigskip
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/frontend-driver.png}
+    \caption[Giao diện tài xế — Trạng thái đơn hàng]{Giao diện Driver App — Cập nhật trạng thái giao hàng: PENDING $\rightarrow$ ACCEPTED $\rightarrow$ IN\_TRANSIT $\rightarrow$ DELIVERED}
+    \label{fig:frontend-driver}
+\end{figure}
+
+\bigskip
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/frontend-admin.png}
+    \caption[Giao diện quản trị — Dashboard]{Giao diện Admin Dashboard — Analytics charts, alert feed, heatmap overlay}
+    \label{fig:frontend-admin}
+\end{figure}
+
+\bigskip
+\noindent
+\textbf{Các tính năng chính của frontend:}
+
+\bigskip
+\begin{itemize}
+    \item \textbf{Customer View (Hình \ref{fig:frontend-customer}):}
+    \begin{itemize}
+        \item Nút "Place Order" tạo đơn hàng qua REST API.
+        \item Leaflet Map hiển thị marker tài xế, cập nhật vị trí mỗi giây qua WebSocket.
+        \item ETA countdown hiển thị thời gian đến ước tính.
+        \item Toast notification khi tài xế cách < 500m (proximity alert).
+    \end{itemize}
+
+    \item \textbf{Driver View (Hình \ref{fig:frontend-driver}):}
+    \begin{itemize}
+        \item Danh sách đơn hàng đang chờ (PENDING).
+        \item Nút "Accept / Reject" -- cập nhật trạng thái qua REST.
+        \item Trạng thái: \texttt{ACCEPTED -\textgreater{} PICKING\_UP -\textgreater{} IN\_TRANSIT -\textgreater{} ARRIVING -\textgreater{} DELIVERED}.
+        \item Khi DELIVERED -\textgreater{} gọi \texttt{CompleteTrip()} -\textgreater{} tính cước phí.
+    \end{itemize}
+
+    \item \textbf{Admin View (Hình \ref{fig:frontend-admin}):}
+    \begin{itemize}
+        \item Charts (Recharts) hiển thị hiệu suất tài xế theo tuần.
+        \item Alert feed real-time từ WebSocket.
+        \item Heatmap overlay (Leaflet.heat) hiển thị khu vực nhu cầu cao.
+        \item Trip playback -- animation GPS trace từ API \texttt{GET /api/trips/:id/route}.
+    \end{itemize}
+\end{itemize}
+
+\bigskip
+\noindent
+\textbf{WebSocket Client Implementation (React Hook):}
+\bigskip
+\begin{lstlisting}[language=JavaScript, caption={React Hook — \texttt{useDriverLocation.js}: WebSocket subscription cho real-time location}, label={lst:websocket-client}]
+import { useState, useEffect } from "react";
+
+export function useDriverLocation(driverId) {
+  const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${protocol}//localhost:8080/ws`);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        action:    "subscribe",
+        driver_id: driverId,
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "location_update") {
+        setLocation({
+          lat:   data.latitude,
+          lng:   data.longitude,
+          speed: data.speed,
+          eta:   data.eta_seconds,
+        });
+      }
+
+      if (data.type === "alert") {
+        showToast(data.message); // Proximity / Speeding notification
+      }
+    };
+
+    ws.onerror = (err) => console.error("WebSocket error:", err);
+    return () => ws.close();
+  }, [driverId]);
+
+  return location;
+}
+\end{lstlisting}
