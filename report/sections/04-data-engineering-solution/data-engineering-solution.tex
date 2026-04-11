@@ -21,7 +21,7 @@
 
 \bigskip
 \noindent
-\textbf{Bước 1 — GPX Simulation (Golang):} Chương trình simulator đọc tệp GPX, trích xuất các điểm GPS, và gửi JSON event đến Kafka topic \texttt{raw-location-events}. Mỗi event được gắn key là \texttt{driver\_id} để đảm bảo tất cả event của cùng một tài xế được xử lý tuần tự trong cùng một partition.
+\textbf{Bước 1 — GPX Simulation (Golang):} Chương trình simulator đọc tệp GPX, trích xuất các điểm GPS, và gửi JSON event đến Kafka topic \texttt{raw-location-events}. Trường \texttt{driver\_id} được đính kèm trong payload JSON; Kafka Streams sẽ thực hiện re-keying theo \texttt{driver\_id} ở bước xử lý để đảm bảo tất cả event của cùng một tài xế được xử lý tuần tự trong cùng một partition.
 
 \bigskip
 \noindent
@@ -63,15 +63,178 @@ Mỗi goroutine xử lý một tài xế: \texttt{gpx.Parse(file)} đọc toàn 
 \subsection{Tầng xử lý luồng (Kafka Streams — Java)}
 \label{sec:processing-layer}
 
-Kafka Streams là thư viện xử lý luồng chạy trong JVM. Phần này trình bày chi tiết topology được triển khai.
+% --- 4.3.0 Apache Kafka: Nền tảng truyền phát phân tán ---
+\subsubsection{Nền tảng Apache Kafka — Distributed Commit Log}
+\label{sec:kafka-foundation}
 
-\begin{enumerate}
-    \item \textbf{Filter Invalid Coordinates (RT1):} Loại bỏ tọa độ lat/lng nằm ngoài phạm vi, accuracy > 20m.
-    \item \textbf{Stateful Speed Calculation (RT3):} \texttt{SpeedAlertProcessor} sử dụng State Store (RocksDB) lưu GPS point trước đó. Tính \texttt{velocity = (dist\_km / time\_delta\_s) × 3600}. Nếu > 60 km/h → cờ \texttt{isSpeeding = true}.
-    \item \textbf{Windowed Aggregation (RT2):} \texttt{TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(30))} — cửa sổ 30 giây không overlap. Tính tốc độ trung bình.
-    \item \textbf{Stream-Table Join (RT4):} \texttt{KTable<String, Destination>} từ topic \texttt{orders}. Join mỗi location event với destination tương ứng → tính Haversine distance.
-    \item \textbf{Branching:} Chia luồng: SPEEDING alert / PROXIMITY alert / valid location.
-\end{enumerate}
+Trước khi đi vào chi tiết Kafka Streams, cần hiểu rõ nền tảng phía dưới: Apache Kafka — nền tảng truyền phát luồng phân tán (distributed streaming platform) đóng vai trò hệ thần kinh trung tâm của toàn bộ kiến trúc.
+
+\bigskip
+\noindent
+\textbf{Bản chất: Distributed Commit Log.} Kafka không đơn thuần là hàng đợi tin nhắn (\textit{message queue}) truyền thống. Về bản chất, Kafka được thiết kế như một \textbf{nhật ký xác nhận phân tán} (\textit{distributed commit log}) — tương tự \textit{commit log} trong hệ thống cơ sở dữ liệu, nơi mọi giao dịch được ghi lại bền vững theo đúng thứ tự thời gian, có thể phát lại (\textit{replay}) và khôi phục trạng thái nhất quán khi có sự cố. Dữ liệu GPS được lưu trữ bền vững trên \textbf{ổ đĩa} (\textit{append-only}), tận dụng I/O tuần tự (\textit{sequential I/O}) — cơ chế cho phép Kafka đạt thông lượng ghi lên đến hàng triệu messages/giây.
+
+\bigskip
+\noindent
+\textbf{Mô hình Publish/Subscribe.} Kiến trúc Kafka hoạt động theo cơ chế xuất bản/đăng ký (\textit{Pub/Sub}): \textit{Producers} (ứng dụng simulator Golang) không gửi tin nhắn trực tiếp đến \textit{Consumers}, mà đẩy dữ liệu GPS vào các \textbf{Topics} trên Kafka \textit{Brokers}. \textit{Consumers} (Kafka Streams processor, WebSocket Hub) đăng ký theo dõi các Topics cần thiết để nhận dữ liệu. Sự tách biệt hoàn toàn (\textit{decoupling}) này cho phép mở rộng quy mô \textbf{độc lập} giữa bên sản xuất (hàng nghìn thiết bị tài xế) và bên tiêu thụ (dịch vụ ETA, dịch vụ lưu trữ, cảnh báo), loại bỏ sự phức tạp của các kết nối điểm-điểm (\textit{point-to-point}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm and 2.5cm,
+    producer/.style={rectangle, draw, rounded corners, fill=orange!15, text width=2.8cm, minimum height=0.7cm, align=center, font=\small},
+    broker/.style={rectangle, draw, rounded corners, fill=blue!12, text width=3.5cm, minimum height=0.7cm, align=center, font=\small},
+    consumer/.style={rectangle, draw, rounded corners, fill=green!12, text width=3.5cm, minimum height=0.7cm, align=center, font=\small},
+    topic/.style={rectangle, draw, dashed, fill=yellow!8, text width=3.5cm, minimum height=0.6cm, align=center, font=\scriptsize},
+    arrow/.style={->, thick, >=stealth}
+]
+
+% Vẽ các Nodes
+\node[producer] (sim) {Go Simulator\\(Producer)};
+\node[broker, right=2.5cm of sim] (kafka) {\textbf{Kafka Broker}};
+\node[topic, below=0.3cm of kafka] (t1) {\texttt{raw-location-events}};
+\node[topic, below=0.1cm of t1] (t2) {\texttt{processed-updates}};
+\node[topic, below=0.1cm of t2] (t3) {\texttt{alerts}};
+\node[consumer, right=2.5cm of kafka, yshift=0.5cm] (streams) {Kafka Streams\\(Consumer/Producer)};
+\node[consumer, right=2.5cm of kafka, yshift=-0.8cm] (ws) {Go API/WebSocket\\(Consumer)};
+
+% Vẽ các mũi tên
+\draw[arrow] (sim) -- node[above, font=\scriptsize]{GPS JSON} (kafka);
+\draw[arrow] (kafka) -- (streams);
+\draw[arrow] (streams) to[bend left=30] node[above, font=\scriptsize]{Write results} (kafka);
+\draw[arrow] (kafka) -- (ws);
+
+\end{tikzpicture}
+\caption{Mô hình Pub/Sub --- Producers và Consumers giao tiếp gián tiếp qua Kafka Broker}
+\label{fig:kafka-pubsub}
+\end{figure}
+
+\bigskip
+\noindent
+\textbf{Topics, Partitions, và tính nhất quán về thứ tự.} Mỗi Topic được chia nhỏ thành nhiều \textbf{Partitions} — đơn vị mở rộng quy mô cốt lõi. Dữ liệu GPS được ghi vào cuối Partition dưới dạng \textit{append-only}. Trong hệ thống này, có 3 topics chính:
+
+\begin{table}[H]
+\centering
+\caption{Thiết kế Kafka Topics của hệ thống}
+\label{tab:kafka-topics}
+\begin{tabular}{|l|c|c|l|l|}
+\hline
+\textbf{Topic} & \textbf{Partitions} & \textbf{Retention} & \textbf{Key} & \textbf{Mô tả} \\
+\hline
+\texttt{raw-location-events} & 3 & 24h & \texttt{driver\_id} & GPS thô từ simulator \\
+\hline
+\texttt{processed-updates} & 3 & 7 ngày & \texttt{driver\_id} & Vị trí đã xử lý + ETA \\
+\hline
+\texttt{alerts} & 1 & 30 ngày & \texttt{driver\_id} & Cảnh báo tốc độ/proximity \\
+\hline
+\end{tabular}
+\end{table}
+
+\noindent
+\textbf{Tại sao \texttt{driver\_id} làm key?} Kafka chỉ đảm bảo thứ tự các messages \textbf{trong cùng một Partition}. Nếu GPS data của cùng một tài xế bị phân tán ngẫu nhiên vào nhiều Partitions, Consumers có thể nhận tọa độ giây thứ 10 trước giây thứ 5 — gây sai lệch hoàn toàn khi tính tốc độ và quỹ đạo. Bằng cách dùng \texttt{driver\_id} làm key, hàm băm của Kafka đảm bảo mọi GPS event của cùng một tài xế luôn đi vào cùng một Partition, duy trì thứ tự thời gian tuyệt đối.
+
+Trong code, Go Producer gửi GPS events không gắn key tường minh (sử dụng \texttt{LeastBytes} balancer). Để đảm bảo ordering cho xử lý phía downstream, Kafka Streams topology thực hiện \textbf{re-keying} ngay ở bước đầu tiên:
+
+\begin{lstlisting}[language=Java, caption={Re-keying GPS events theo \texttt{driver\_id} trong Kafka Streams}, label={lst:rekey}]
+KStream<String, LocationEvent> rawStream = builder.stream(
+        "raw-location-events",
+        Consumed.with(Serdes.String(), locationEventSerde))
+    .selectKey((k, v) -> v != null ? v.getDriverId() : "unknown");
+\end{lstlisting}
+
+Thao tác \texttt{selectKey()} trích xuất \texttt{driver\_id} từ payload JSON và đặt làm key mới — đảm bảo tất cả các bước xử lý tiếp theo (State Store lookup, windowed aggregation, stream-table join) đều được partitioned chính xác theo tài xế.
+
+\bigskip
+\noindent
+\textbf{Replication và khả năng chịu lỗi.} Trong môi trường production, mỗi Partition được sao chép (\textit{replicated}) trên nhiều Brokers. Nếu một Broker gặp sự cố, replica trên Broker khác tự động được bầu làm leader mới — đảm bảo không mất dữ liệu GPS. Trong phạm vi dự án demo, nhóm sử dụng cấu hình 1 broker / replication factor = 1 (qua Docker Compose) để đơn giản hóa hạ tầng local.
+
+\bigskip
+\noindent
+\textbf{Consumer Groups và cân bằng tải.} Kafka cho phép nhiều Consumers cùng tham gia một \textbf{Consumer Group} để chia sẻ khối lượng công việc đọc từ Topic. Quy tắc cốt lõi: mỗi Partition chỉ được gán cho \textbf{đúng một Consumer} trong cùng một group tại mỗi thời điểm. Cơ chế này cho phép mở rộng ngang: khi lưu lượng tăng (giờ cao điểm), ta chỉ cần khởi động thêm instances — Kafka tự động \textit{rebalance}, phân phối lại Partitions cho các instances mới mà không cần dừng hệ thống.
+
+Tiến trình đọc dữ liệu được quản lý qua \textbf{Offset} — số nguyên đơn điệu tăng đại diện cho vị trí chính xác của từng message trong Partition. Khi ứng dụng xử lý thành công một GPS event, nó commit Offset tương ứng — tạo điểm phục hồi chính xác nếu xảy ra sự cố. Kafka Streams tận dụng trực tiếp cơ chế Consumer Group này để tự động phân phối các Stream Tasks lên nhiều instances.
+
+\begin{lstlisting}[language=Java, caption={Kafka Streams sử dụng Consumer Group Protocol --- mỗi instance tự động nhận Partitions}, label={lst:kafka-config}]
+Properties props = new Properties();
+props.put(StreamsConfig.APPLICATION_ID_CONFIG,
+          "delivery-stream-processor");    // = Consumer Group ID
+props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG,
+          "localhost:9092");               // Kafka Broker
+\end{lstlisting}
+
+\texttt{APPLICATION\_ID\_CONFIG} đóng vai trò như \textbf{Consumer Group ID} — tất cả instances chạy cùng Application ID sẽ tự động chia sẻ Partitions thông qua giao thức tái cân bằng (rebalance protocol) của Kafka.
+
+% --- 4.3.1 Kafka Streams: Thư viện xử lý nhúng ---
+\subsubsection{Kafka Streams — Thư viện xử lý luồng nhúng}
+\label{sec:kafka-streams-intro}
+
+Khác biệt cơ bản với các framework xử lý dữ liệu lớn như Apache Spark hay Apache Flink — vốn yêu cầu thiết lập và duy trì cụm máy chủ chuyên dụng với kiến trúc Master/Worker — Kafka Streams chỉ là một \textbf{thư viện Java tiêu chuẩn} (embedded library) được nhúng trực tiếp vào ứng dụng. Trong dự án này, toàn bộ stream processor được đóng gói thành \textbf{một file JAR duy nhất}, chạy trên bất kỳ JVM nào mà không cần cài đặt hay quản lý cụm tính toán riêng biệt. Khi được khởi chạy, ứng dụng tự động tận dụng các đặc tính phân tán có sẵn của cụm Kafka (partitioning, consumer groups, rebalancing) để phân phối khối lượng tính toán — giải phóng hoàn toàn gánh nặng vận hành hạ tầng.
+
+Kafka Streams cung cấp hai tầng API lập trình:
+\begin{itemize}
+    \item \textbf{DSL (Domain-Specific Language):} API khai báo cấp cao với các hàm tiêu chuẩn (\texttt{filter}, \texttt{map}, \texttt{join}, \texttt{aggregate}, \texttt{windowedBy}). Cú pháp tương đồng Java 8 Streams, giúp phát triển nhanh các đường ống dữ liệu tiêu chuẩn.
+    \item \textbf{Processor API:} API cấp thấp cho phép điều khiển chi tiết từng bản ghi (record) và tương tác trực tiếp với State Store. Cần thiết cho các bài toán đặc thù đòi hỏi kiểm soát chính xác khi nào trạng thái được đọc/ghi.
+\end{itemize}
+
+Trong dự án, nhóm \textbf{kết hợp cả hai}: DSL cho các phép biến đổi tiêu chuẩn (filter, windowed aggregation, stream-table join, branching) và Processor API cho bài toán tính tốc độ tức thời — vì việc so sánh tọa độ hiện tại với tọa độ GPS liền trước đó đòi hỏi truy cập và cập nhật State Store (\texttt{stateStore.get(key)} rồi \texttt{stateStore.put(key, event)}) một cách tường minh, điều mà DSL không hỗ trợ trực tiếp.
+
+% --- 4.3.2 Topology xử lý ---
+\subsubsection{Đồ thị xử lý (Processor Topology) của hệ thống}
+\label{sec:topology}
+
+Mọi ứng dụng Kafka Streams đều được định nghĩa thông qua một \textbf{Processor Topology} — đồ thị có hướng không tuần hoàn (Directed Acyclic Graph -- DAG) mô tả chính xác con đường mà từng sự kiện dữ liệu đi qua, từ lúc được đọc từ Kafka topic đầu vào cho đến khi được ghi ra topic đầu ra. Hình~\ref{fig:topology-flow} minh họa topology của hệ thống với 6 bước xử lý tuần tự:
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=0.7cm,
+    box/.style={rectangle, draw, rounded corners, fill=blue!8, text width=6cm, minimum height=0.7cm, align=center, font=\small},
+    arrow/.style={->, thick, >=stealth}
+]
+\node[box] (source) {\textbf{Source:} \texttt{raw-location-events} topic};
+\node[box, below=of source] (filter) {\textbf{1. Filter} (Stateless --- DSL): Lọc tọa độ không hợp lệ};
+\node[box, below=of filter] (speed) {\textbf{2. SpeedAlertProcessor} (Stateful --- Processor API + RocksDB)};
+\node[box, below=of speed] (window) {\textbf{3. Windowed Aggregation} (Stateful --- DSL + WindowStore 30s)};
+\node[box, below=of window] (join) {\textbf{4. Stream-Table Join} (DSL --- KTable \texttt{orders})};
+\node[box, below=of join] (branch) {\textbf{5. Branch} (Stateless --- DSL): Phân luồng};
+\node[box, right=1.8cm of branch, yshift=0.8cm, fill=red!10] (alerts) {\textbf{Sink:} \texttt{alerts} topic};
+\node[box, right=1.8cm of branch, yshift=-0.8cm, fill=green!10] (processed) {\textbf{Sink:} \texttt{processed-updates} topic};
+
+\draw[arrow] (source) -- (filter);
+\draw[arrow] (filter) -- (speed);
+\draw[arrow] (speed) -- (window);
+\draw[arrow] (window) -- (join); % <-- Đã sửa dòng này
+\draw[arrow] (join) -- (branch);
+\draw[arrow] (branch) -- node[above, font=\scriptsize]{SPEEDING / PROXIMITY} (alerts);
+\draw[arrow] (branch) -- node[below, font=\scriptsize]{VALID} (processed);
+\end{tikzpicture}
+\caption{Processor Topology --- Luồng xử lý dữ liệu GPS từ topic đầu vào đến các topic đầu ra}
+\label{fig:topology-flow}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Chi tiết các bước xử lý trong Topology}
+\label{tab:topology-steps}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|p{2.8cm}|p{3.5cm}|p{4cm}|p{1.5cm}|}
+\hline
+\textbf{Bước} & \textbf{Tên} & \textbf{Loại xử lý} & \textbf{Mô tả} & \textbf{Yêu cầu} \\
+\hline
+1 & Filter Coordinates & Stateless (DSL \texttt{filter}) & Loại bỏ lat/lng ngoài phạm vi $[-90, 90]$/$[-180, 180]$, accuracy $> 20$m & RT1 \\
+\hline
+2 & Speed Calculation & Stateful (Processor API + RocksDB State Store) & Tính tốc độ tức thời: $v = \frac{\Delta d}{\Delta t} \times 3600$ km/h từ 2 GPS points liên tiếp & RT3 \\
+\hline
+3 & Windowed Average & Stateful (DSL + WindowStore) & Tumbling window 30s --- tính tốc độ trung bình qua \texttt{SpeedAccumulator} & RT2 \\
+\hline
+4 & Stream-Table Join & DSL \texttt{leftJoin} + KTable & Join với \texttt{orders} KTable --- tính khoảng cách Haversine đến điểm giao & RT4 \\
+\hline
+5 & Branch & Stateless (DSL \texttt{branch}) & Phân luồng: speed $> 60$ $\rightarrow$ SPEEDING; dist $< 0.5$ km $\rightarrow$ PROXIMITY; còn lại $\rightarrow$ VALID & RT3, RT4 \\
+\hline
+\end{tabular}%
+}
+\end{table}
+
+Listing~\ref{lst:topology} trình bày mã nguồn Java triển khai toàn bộ topology theo phương thức \texttt{buildTopology()} trong lớp \texttt{Main.java}. Các khái niệm kỹ thuật quan trọng (State Store, Windowing, Stream-Table Join) được giải thích chi tiết ở các phần tiếp theo.
 
 \begin{lstlisting}[language=Java, caption={Kafka Streams Topology — \texttt{Main.java}: Filter $\rightarrow$ Stateful Speed $\rightarrow$ Windowed Avg $\rightarrow$ Stream-Table Join $\rightarrow$ Branch}, label={lst:topology}]
 public static Topology buildTopology() {
@@ -178,47 +341,178 @@ public static Topology buildTopology() {
 }
 \end{lstlisting}
 
+% --- 4.3.3 Xử lý có trạng thái với RocksDB ---
+\subsubsection{Xử lý có trạng thái — Tính tốc độ với RocksDB State Store}
+\label{sec:stateful-processing}
+
+Để tính tốc độ di chuyển của phương tiện, hệ thống không thể chỉ quan sát một tọa độ hiện tại mang tính cô lập. Công thức tính vận tốc đòi hỏi phải ``nhớ'' được tọa độ GPS ngay trước đó cùng thời điểm chính xác mà tọa độ đó được ghi nhận:
+$$v_{km/h} = \frac{\text{Haversine}(P_{\text{prev}}, P_{\text{curr}})}{\Delta t_{\text{seconds}}} \times 3600$$
+
+Đây chính là bài toán xử lý có trạng thái (stateful stream processing) — mỗi sự kiện GPS mới phụ thuộc vào sự kiện liền trước để tạo ra kết quả.
+
+\bigskip
+\noindent
+\textbf{Tại sao không dùng HashMap hoặc Redis?}
+\begin{itemize}
+    \item \textbf{HashMap (in-memory):} Nếu ứng dụng cần khởi động lại để cập nhật phiên bản, hoặc máy chủ bị tắt đột ngột, toàn bộ trạng thái trong bộ nhớ sẽ mất hoàn toàn. Hệ thống sẽ ``mù'' — không thể tính vận tốc cho đến khi thu thập lại tọa độ mới cho mọi tài xế đang trên đường.
+    \item \textbf{Redis/Memcached (external):} Ở quy mô hàng chục nghìn GPS events/giây, mỗi lần tính tốc độ phải thực hiện 1 \textit{network round-trip} để đọc tọa độ cũ + 1 \textit{round-trip} để ghi tọa độ mới. Độ trễ mạng cộng dồn sẽ phá vỡ yêu cầu latency \textit{sub-millisecond} và tạo \textit{bottleneck} tại cơ sở dữ liệu bên ngoài.
+\end{itemize}
+
+\noindent
+\textbf{Giải pháp: RocksDB State Store tích hợp.} Kafka Streams nhúng trực tiếp RocksDB — công cụ key-value store siêu nhẹ tối ưu cho SSD — ngay trong tiến trình ứng dụng Java. Khi tọa độ GPS mới đến, ứng dụng tra cứu tọa độ cũ từ RocksDB cục bộ với độ trễ chỉ vài micro giây (hoàn toàn không có network latency), tính tốc độ, rồi ghi đè tọa độ mới nhất. Toàn bộ quá trình diễn ra trên cùng máy chủ, loại bỏ hoàn toàn các cuộc gọi mạng tốn kém.
+
+\bigskip
+\noindent
+\textbf{Cơ chế chịu lỗi (\textit{Fault Tolerance}):} Mọi thay đổi ghi vào RocksDB được Kafka Streams tự động sao lưu dưới dạng \textbf{\textit{changelog topic}} — một topic đặc biệt trong cụm Kafka được cấu hình với \textit{log compaction} (chỉ giữ trạng thái mới nhất của mỗi key). Nếu ứng dụng bị sập, phiên bản mới sẽ tự động kết nối vào \textit{changelog topic}, khôi phục lại RocksDB cục bộ y hệt thời điểm trước khi sập, rồi tiếp tục xử lý mà không mất bất kỳ trạng thái nào.
+
+\bigskip
+\noindent
+Listing~\ref{lst:speed-processor} triển khai logic tính tốc độ qua lớp \texttt{SpeedAlertProcessor}, sử dụng Processor API để tương tác trực tiếp với State Store:
+
 \begin{lstlisting}[language=Java, caption={SpeedAlertProcessor — Stateful Processor với State Store (RocksDB)}, label={lst:speed-processor}]
-public class SpeedAlertProcessor
-        implements Processor<String, LocationEvent, String, EnrichedLocation> {
+public class SpeedAlertProcessor implements
+        ProcessorSupplier<String, LocationEvent, String, EnrichedLocation> {
 
-    public static final String STATE_STORE = "previous-location-store";
-    private ProcessorContext context;
-    private StateStore stateStore;
+    public static final String STATE_STORE = "previous-location";
 
     @Override
-    public void init(ProcessorContext context) {
-        this.context  = context;
-        this.stateStore = context.getStateStore(STATE_STORE);
-    }
+    public Processor<String, LocationEvent, String, EnrichedLocation> get() {
+        return new Processor<>() {
+            private ProcessorContext<String, EnrichedLocation> context;
+            private KeyValueStore<String, LocationEvent> stateStore;
 
-    @Override
-    public void process(String key, LocationEvent event) {
-        // Read previous GPS point from RocksDB state store
-        LocationEvent prev = (LocationEvent) stateStore.get(key);
-
-        if (prev != null) {
-            double distKm = Haversine.haversine(
-                    prev.getLatitude(),  prev.getLongitude(),
-                    event.getLatitude(), event.getLongitude());
-
-            double timeDeltaSec = (event.getTimestamp().toEpochMilli()
-                                 - prev.getTimestamp().toEpochMilli()) / 1000.0;
-
-            if (timeDeltaSec > 0) {
-                // velocity = (km / seconds) * 3600 = km/h
-                double speedKmh = (distKm / timeDeltaSec) * 3600;
-                context.forward(key, new EnrichedLocation(event, speedKmh));
+            @Override
+            public void init(ProcessorContext<String, EnrichedLocation> ctx) {
+                this.context = ctx;
+                this.stateStore = ctx.getStateStore(STATE_STORE);
             }
-        }
 
-        // Update state store for next computation
-        stateStore.put(key, event);
+            @Override
+            public void process(Record<String, LocationEvent> record) {
+                LocationEvent curr = record.value();
+                // Read previous GPS point from RocksDB state store
+                LocationEvent prev = stateStore.get(record.key());
+
+                double speedKmh = 0.0;
+                if (prev != null) {
+                    double distKm = Haversine.haversine(
+                            prev.getLatitude(), prev.getLongitude(),
+                            curr.getLatitude(), curr.getLongitude());
+                    double seconds = (curr.getTimestamp().getTime()
+                                    - prev.getTimestamp().getTime()) / 1000.0;
+                    if (seconds > 0) {
+                        speedKmh = (distKm / seconds) * 3600;
+                    }
+                }
+
+                EnrichedLocation enriched = new EnrichedLocation(curr, speedKmh);
+                // Update state store for next computation
+                stateStore.put(record.key(), curr);
+                context.forward(record.withValue(enriched));
+            }
+
+            @Override public void close() { }
+        };
     }
-
-    @Override public void close() { }
 }
 \end{lstlisting}
+
+\bigskip
+\noindent
+\textbf{Phân tích Listing~\ref{lst:speed-processor}:} Lớp \texttt{SpeedAlertProcessor} triển khai \texttt{ProcessorSupplier} — mỗi lần Kafka Streams khởi tạo task mới, phương thức \texttt{get()} trả về một \texttt{Processor} instance riêng biệt, đảm bảo mỗi task có state độc lập. Bên trong \texttt{Processor}, logic sử dụng \texttt{KeyValueStore<String, LocationEvent>} (RocksDB) như sau:
+\begin{enumerate}
+    \item \texttt{stateStore.get(record.key())} — tra cứu GPS point trước đó trong RocksDB (key = \texttt{driver\_id}). Truy vấn cục bộ, không có network latency.
+    \item Tính khoảng cách $\Delta d$ bằng công thức Haversine giữa tọa độ trước (\texttt{prev}) và tọa độ hiện tại (\texttt{curr}).
+    \item Tính thời gian chênh lệch $\Delta t$ từ trường \texttt{timestamp} (kiểu \texttt{Date}) của hai events: \texttt{(curr.getTime() - prev.getTime()) / 1000.0} giây.
+    \item Tính tốc độ: $v = (\Delta d / \Delta t) \times 3600$ km/h. Constructor \texttt{EnrichedLocation(curr, speedKmh)} tự động đặt \texttt{speeding = (speedKmh > 60.0)}.
+    \item \texttt{stateStore.put(record.key(), curr)} — cập nhật tọa độ mới nhất vào State Store, sẵn sàng cho lần tính tiếp theo.
+    \item \texttt{context.forward(record.withValue(enriched))} — chuyển tiếp bản ghi đã enriched sang bước tiếp theo trong topology.
+\end{enumerate}
+
+% --- 4.3.4 Windowed Aggregation ---
+\subsubsection{Cửa sổ thời gian Tumbling Window — Tính tốc độ trung bình}
+\label{sec:windowed-aggregation}
+
+Tốc độ tức thời (tính từ 2 GPS points liên tiếp) có thể dao động mạnh do nhiễu GPS hoặc tín hiệu phản xạ. Để tính ETA chính xác hơn, hệ thống sử dụng \textbf{Tumbling Window} — cửa sổ thời gian cố định không chồng lấp — để tính tốc độ trung bình trong khoảng 30 giây gần nhất.
+
+\bigskip
+\noindent
+\textbf{Lý do sử dụng Tumbling Window 30 giây}
+\begin{itemize}
+    \item \textbf{Tumbling Window:} Chia trục thời gian thành các khung cố định liền kề nhau, không overlap (ví dụ: [0s--30s], [30s--60s], ...). Mỗi GPS event thuộc chính xác một window duy nhất. Đây là loại window đơn giản nhất và phù hợp cho bài toán tính trung bình tốc độ.
+    \item \textbf{30 giây:} Đủ lớn để chứa 25--30 GPS points (1 point/giây) nhằm triệt tiêu nhiễu, nhưng đủ nhỏ để ETA vẫn phản ánh tốc độ gần nhất (nếu window quá dài, ETA sẽ phản hồi chậm khi tài xế tăng/giảm tốc). \texttt{ofSizeWithNoGrace} — không chấp nhận dữ liệu đến trễ sau khi window đã đóng.
+\end{itemize}
+
+\noindent
+Lớp \texttt{SpeedAccumulator} thực hiện tính trung bình cộng theo pattern Accumulator:
+
+\begin{lstlisting}[language=Java, caption={SpeedAccumulator — Accumulator tính tốc độ trung bình}, label={lst:speed-accumulator}]
+public class SpeedAccumulator {
+    private double sum;
+    private int count;
+
+    public SpeedAccumulator() {
+        this.sum = 0.0;
+        this.count = 0;
+    }
+
+    public SpeedAccumulator add(double speed) {
+        this.sum += speed;
+        this.count++;
+        return this;
+    }
+
+    public double getAverage() {
+        return this.count == 0 ? 0.0 : this.sum / this.count;
+    }
+}
+\end{lstlisting}
+
+Mỗi khi một GPS event mới thuộc window hiện tại, phương thức \texttt{add(speed)} cộng dồn giá trị tốc độ. Khi window đóng lại (sau 30s), \texttt{getAverage()} trả về tốc độ trung bình — đây là giá trị được sử dụng để tính ETA: $\text{ETA} = (\text{distance\_km} / \text{avg\_speed\_kmh}) \times 3600$ (giây).
+
+% --- 4.3.5 Stream-Table Join ---
+\subsubsection{Stream-Table Join — Tính khoảng cách Haversine đến điểm giao}
+\label{sec:stream-table-join}
+
+Để phát hiện khi tài xế đến gần điểm giao hàng (geofencing), hệ thống cần đối chiếu liên tục vị trí hiện tại của tài xế với tọa độ đích của đơn hàng. Kafka Streams giải quyết bài toán này qua \textbf{Stream-Table Join} — kết hợp hai mô hình dữ liệu cốt lõi:
+
+\begin{itemize}
+    \item \textbf{KStream (Luồng sự kiện):} Luồng GPS events liên tục — mỗi bản ghi là một sự kiện độc lập, bất biến, mang ngữ nghĩa INSERT. Mỗi tọa độ mới của cùng một tài xế được \textit{thêm vào cuối luồng} chứ không ghi đè.
+    \item \textbf{KTable (Bảng trạng thái):} Bảng tra cứu đơn hàng từ topic \texttt{orders} — duy trì trạng thái mới nhất của mỗi key (\texttt{driver\_id}), mang ngữ nghĩa UPSERT. Khi đơn hàng mới được gán cho tài xế, bản ghi cũ bị ghi đè.
+\end{itemize}
+
+\noindent
+Khi thực hiện \texttt{leftJoin}, mỗi GPS event mới (\texttt{KStream}) tự động tra cứu tọa độ đích (\texttt{KTable}) theo \texttt{driver\_id}. Nếu tìm thấy điểm đích, hệ thống tính khoảng cách bằng công thức Haversine:
+
+\begin{lstlisting}[language=Java, caption={Haversine — Công thức tính khoảng cách giữa hai tọa độ trên mặt cầu}, label={lst:haversine}]
+public static double haversine(double lat1, double lon1,
+                                double lat2, double lon2) {
+    double dLat = Math.toRadians(lat2 - lat1);
+    double dLon = Math.toRadians(lon2 - lon1);
+    lat1 = Math.toRadians(lat1);
+    lat2 = Math.toRadians(lat2);
+    double a = Math.pow(Math.sin(dLat / 2), 2) +
+               Math.pow(Math.sin(dLon / 2), 2)
+               * Math.cos(lat1) * Math.cos(lat2);
+    double c = 2 * Math.asin(Math.sqrt(a));
+    return 6371 * c; // km
+}
+\end{lstlisting}
+
+Nếu khoảng cách $< 0.5$ km (500m), sự kiện được chuyển vào nhánh \texttt{PROXIMITY} và xuất bản cảnh báo đến topic \texttt{alerts}. Nếu $v > 60$ km/h, sự kiện vào nhánh \texttt{SPEEDING}. Các sự kiện hợp lệ còn lại được ghi vào topic \texttt{processed-updates} để phục vụ WebSocket push về giao diện khách hàng.
+
+% --- 4.3.6 Exactly-Once Semantics ---
+\subsubsection{Đảm bảo tính chính xác: Exactly-Once Semantics (EOS)}
+\label{sec:exactly-once}
+
+Một hệ thống tính cước dựa trên quãng đường GPS không thể chấp nhận việc tính toán trùng lặp (cùng một tọa độ bị đếm hai lần) hoặc mất mát (một tọa độ bị bỏ qua). Kafka Streams tích hợp sẵn \textbf{Exactly-Once Semantics (EOS)} thông qua giao thức giao dịch nguyên tử: mỗi chu kỳ ``đọc event $\rightarrow$ tính toán $\rightarrow$ ghi kết quả $\rightarrow$ commit offset'' được thực hiện trong một transaction duy nhất. Hoặc tất cả các bước đều thành công, hoặc toàn bộ bị hủy bỏ (rollback). Cấu hình chỉ cần một dòng:
+
+\begin{lstlisting}[language=Java, caption={Cấu hình Exactly-Once Semantics}, label={lst:eos-config}]
+props.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG,
+          StreamsConfig.EXACTLY_ONCE_V2);
+\end{lstlisting}
+
+Tính năng này đảm bảo rằng dù ứng dụng bị sập hay khởi động lại, mỗi GPS event chỉ được xử lý \textbf{đúng một lần duy nhất} — điều kiện tiên quyết cho việc tính cước phí chính xác và đảm bảo tính toàn vẹn dữ liệu trong Cassandra.
 
 % --- 4.4 Storage Layer (Cassandra) ---
 \subsection{Tầng lưu trữ (Apache Cassandra)}
