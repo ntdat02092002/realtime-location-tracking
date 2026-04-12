@@ -8,7 +8,11 @@
 \subsection{So sánh các giải pháp xử lý dữ liệu}
 \label{sec:processing-comparison}
 
-Hai công nghệ xử lý luồng phổ biến nhất được so sánh: \textbf{Apache Kafka Streams} (được chọn) và \textbf{Apache Spark Streaming} (giải pháp thay thế).
+Trong lĩnh vực xử lý luồng dữ liệu (stream processing), ba công nghệ phổ biến nhất hiện nay là: \textbf{Apache Kafka Streams}, \textbf{Apache Spark Streaming}, và \textbf{Apache Flink}. Nhóm tập trung so sánh Kafka Streams (được chọn) với Spark Streaming (giải pháp thay thế chính) — hai công nghệ đại diện cho hai triết lý xử lý trái ngược: \textit{event-at-a-time processing} và \textit{micro-batching}.
+
+\bigskip
+\noindent
+\textbf{Sự khác biệt cốt lõi:} Kafka Streams xử lý \textbf{từng event riêng lẻ} ngay khi nó đến — mỗi GPS coordinate được đọc, tính tốc độ, kiểm tra \textit{proximity}, và \textit{forward} kết quả ngay lập tức. Spark Streaming (DStream API) gom các events thành \textbf{\textit{micro-batch}} (mặc định 0.5--2 giây) rồi mới xử lý cả lô — tạo ra độ trễ tối thiểu bằng \textit{batch interval}. Cơ chế \textit{micro-batching} phù hợp cho phân tích dữ liệu quy mô lớn (ETL, ML training) nhưng không đáp ứng được yêu cầu cập nhật vị trí mượt mà trên bản đồ với mục tiêu \textit{end-to-end latency} $< 500$ms.
 
 \begin{table}[H]
 \centering
@@ -19,29 +23,29 @@ Hai công nghệ xử lý luồng phổ biến nhất được so sánh: \textbf
 \hline
 \textbf{Tiêu chí} & \textbf{Chọn: Kafka Streams (Java)} & \textbf{Thay thế: Spark Streaming (Scala/Python)} \\
 \hline
+\textbf{Mô hình xử lý} &
+\textbf{Event-at-a-time} — xử lý từng record ngay khi đến. Mỗi GPS point được tính tốc độ và forward tức thì. &
+\textbf{Micro-batching} — gom events thành lô nhỏ (0.5--2s) rồi xử lý cả lô. Mỗi point phải ``chờ'' đủ lô. \\
+\hline
 \textbf{Độ trễ (Latency)} &
-\textbf{Microseconds} — xử lý từng record ngay khi đến. Tối ưu cho ETA real-time (< 500ms E2E). &
-\textbf{Seconds} — micro-batching (mặc định 0.5–2s batch interval). Không đủ fresh cho ETA động. \\
+\textbf{Sub-millisecond đến vài ms}. E2E latency $<$ 500ms cho ETA real-time. GPS tracker mượt mà, không giật. &
+\textbf{Hundreds of ms đến seconds}. Batch interval = lower bound của latency. GPS tracker bị ``nhảy cóc'' giữa các batch. \\
 \hline
 \textbf{Quản lý State} &
-\textbf{Built-in} — RocksDB state stores tích hợp sẵn. Lưu prev GPS point, destination lookup đều có API trực tiếp. &
-\textbf{External required} — cần Redis, Cassandra, hoặc checkpointed state. Thêm component = thêm điểm lỗi. \\
+\textbf{RocksDB nhúng cục bộ} — State Store tích hợp sẵn. Lưu prev GPS point, destination lookup đều có API trực tiếp. Changelog topic tự động backup trạng thái. &
+\textbf{Cần external store} — Redis, Cassandra, hoặc checkpointed RDDs/DataFrames trên HDFS/S3. Thêm component = thêm điểm lỗi + thêm network latency. \\
 \hline
-\textbf{Deployment} &
-\textbf{Standalone JAR} — chạy trong bất kỳ JVM process nào. Không cần cluster manager. &
-\textbf{Complex} — cần Spark cluster (master + worker nodes). Overhead vận hành lớn cho demo/small scale. \\
+\textbf{Kiến trúc triển khai} &
+\textbf{Embedded Library — Standalone JAR}. Chạy trong bất kỳ JVM process nào. Không cần cluster manager. Đóng gói Docker container dễ dàng. &
+\textbf{Dedicated Cluster — Master/Workers}. Cần Spark cluster (YARN/Mesos/K8s). Overhead vận hành lớn: giám sát, cấu hình, bảo mật cho cả cụm tính toán riêng biệt. \\
 \hline
 \textbf{Exactly-Once} &
-\textbf{Native} — Kafka transactions đảm bảo mỗi GPS event chỉ được xử lý đúng 1 lần. Quan trọng cho billing. &
-\textbf{Best-effort} — có checkpoint nhưng không đảm bảo exactly-once cho external sinks (Cassandra). \\
+\textbf{Native} — Kafka transactions đảm bảo EOS trong 1 cấu hình (\texttt{EXACTLY\_ONCE\_V2}). Quan trọng cho billing GPS-based. &
+\textbf{Best-effort for sinks} — có checkpoint nhưng không đảm bảo exactly-once khi ghi ra external sinks (Cassandra). Cần idempotent writes ở application level. \\
 \hline
 \textbf{Kafka Integration} &
-\textbf{Seamless} — là thư viện chính hãng của Kafka, có sẵn Serde cho JSON/Avro. &
-\textbf{Requires connector} — dùng Kafka Consumer Producer API bên dưới, thêm abstraction layer. \\
-\hline
-\textbf{Use Case Fit} &
-\textbf{Perfect match} — ETA sub-second, proximity alert < 500ms, speed monitoring real-time. &
-\textbf{Overkill} — tốt cho batch analytics (ETL, ML training), không tối ưu cho event-by-event. \\
+\textbf{Seamless — thư viện chính hãng} của Kafka. Serde tích hợp. Consumer Group Protocol giúp tự động scale/rebalance. &
+\textbf{Kafka connector} — sử dụng Kafka Consumer/Producer API bên dưới qua abstraction layer. Cần cấu hình riêng cho offset management. \\
 \hline
 \end{tabular}%
 }
@@ -49,15 +53,19 @@ Hai công nghệ xử lý luồng phổ biến nhất được so sánh: \textbf
 
 \bigskip
 \noindent
-\textbf{Kết luận:} Kafka Streams là lựa chọn tối ưu cho bài toán này vì:
-\begin{itemize}
-    \item Độ trễ microsecond cho phép tính ETA real-time mà Spark Streaming không thể đạt được với batch model.
-    \item State stores tích hợp (RocksDB) đơn giản hóa việc lưu prev GPS point và destination lookup — không cần hệ thống state ngoài.
-    \item Exactly-once semantics quan trọng cho tính cước phí chính xác.
-    \item Deployment đơn giản: chỉ cần chạy JAR, không cần Spark cluster.
-\end{itemize}
+\textbf{Lưu ý về Apache Flink:} Flink cũng hỗ trợ \textit{event-at-a-time processing} với \textit{latency} rất thấp (tương đương Kafka Streams), đồng thời có khả năng xử lý dữ liệu quy mô cực lớn. Tuy nhiên, Flink yêu cầu triển khai cụm tính toán riêng (JobManager/TaskManager) — tương tự Spark về độ phức tạp vận hành. Trong bối cảnh dự án demo với quy mô nhỏ-trung bình và hạ tầng Kafka đã có sẵn, Kafka Streams mang lại lợi thế vượt trội về tính đơn giản triển khai.
 
-Spark Streaming có thể phù hợp hơn khi cần xử lý batch lịch sử kết hợp (ví dụ: huấn luyện ML model cho ETA prediction dựa trên dữ liệu 1 năm), nhưng trong phạm vi demo real-time, Kafka Streams vượt trội.
+\bigskip
+\noindent
+\textbf{Kết luận:} Kafka Streams là lựa chọn tối ưu cho bài toán Delivery Tracking vì:
+\begin{enumerate}
+    \item \textbf{Latency phù hợp bản chất bài toán:} Hệ thống theo dõi giao hàng yêu cầu \textit{E2E latency} $< 500$ms — Kafka Streams đạt \textit{sub-millisecond processing}, trong khi Spark Streaming bị ràng buộc bởi \textit{micro-batch interval} (tối thiểu 500ms).
+    \item \textbf{State management không phụ thuộc bên ngoài:} RocksDB State Store tích hợp sẵn cho phép lưu trữ prev GPS point và destination lookup mà không cần Redis hay cơ sở dữ liệu ngoài — đơn giản hóa kiến trúc và loại bỏ network bottleneck.
+    \item \textbf{Exactly-Once cho billing chính xác:} Kafka transactions đảm bảo mỗi GPS event chỉ được xử lý đúng 1 lần — điều kiện bắt buộc cho tính cước dựa trên quãng đường thực tế.
+    \item \textbf{Deployment tối giản:} Một file JAR duy nhất, không cần cụm tính toán riêng — phù hợp cho dự án demo và môi trường production nhỏ-trung bình.
+\end{enumerate}
+
+Spark Streaming phù hợp hơn trong các kịch bản: (1) cần xử lý batch lịch sử kết hợp streaming (Lambda Architecture); (2) cần áp dụng ML model phức tạp trên luồng dữ liệu; (3) nguồn dữ liệu đa dạng (không chỉ Kafka mà còn HDFS, S3, RDBMS). Trong phạm vi hệ thống GPS tracking thuần streaming với Kafka làm backbone, Kafka Streams vượt trội về cả hiệu năng lẫn chi phí vận hành.
 
 % --- 5.2 Data Management Comparison ---
 \subsection{So sánh các giải pháp quản lý dữ liệu}

@@ -4,11 +4,22 @@
 \section{Yêu cầu nghiệp vụ}
 \label{sec:business-requirements}
 
-Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 thành viên nhóm. 8 yêu cầu này được chia thành 2 nhóm: \textbf{Real-Time Processing} (yêu cầu xử lý luồng thời gian thực) và \textbf{Data Management \& Analytics} (yêu cầu lưu trữ và phân tích dữ liệu).
+Xuất phát từ nhu cầu thực tiễn của hệ thống theo dõi giao hàng và kỳ vọng của các bên liên quan (khách hàng, tài xế, quản trị viên), dự án xác định 8 yêu cầu nghiệp vụ cốt lõi. Nhằm tối ưu hóa kiến trúc hạ tầng, các yêu cầu này được phân loại thành hai nhóm chiến lược: Real-Time Processing (nhóm yêu cầu xử lý luồng thời gian thực) và Data Management \& Analytics (nhóm yêu cầu quản lý và phân tích dữ liệu).
 
 % --- 2.1 Real-Time Processing Requirements ---
 \subsection{Nhóm yêu cầu xử lý thời gian thực (Kafka Streams)}
 \label{sec:realtime-requirements}
+
+Trong bài toán theo dõi giao hàng thời gian thực, dữ liệu GPS từ tài xế phát sinh liên tục với tần suất cao (1 điểm/giây $\times$ hàng nghìn tài xế $\approx$ 86,4 triệu GPS points/ngày). Mô hình xử lý lô (batch processing) — chẳng hạn Hadoop MapReduce hay Spark Batch — gom dữ liệu theo chu kỳ (phút hoặc giờ) rồi mới xử lý, do đó \textbf{hoàn toàn không phù hợp} cho các tính năng đòi hỏi phản hồi tức thời: khách hàng cần thấy xe di chuyển mượt mà trên bản đồ, ETA cần cập nhật liên tục mỗi 10 giây, và cảnh báo tốc độ phải xuất hiện ngay khi vi phạm xảy ra. Thay vì gom lô, hệ thống cần chuyển sang mô hình \textit{``Dữ liệu chuyển động''} (Data in Motion) — xử lý ngay lập tức từng sự kiện GPS tại thời điểm nó phát sinh.
+
+Apache Kafka Streams được chọn làm công nghệ xử lý cốt lõi vì ba lý do:
+\begin{enumerate}
+    \item Xử lý \textbf{từng sự kiện riêng lẻ} (\textit{event-at-a-time}) với độ trễ \textit{sub-millisecond} — đáp ứng yêu cầu cập nhật vị trí \textit{real-time} mà \textit{micro-batching} (Spark Streaming) không thể đạt được.
+    \item Tích hợp sẵn \textbf{State Store} (RocksDB) cho xử lý có trạng thái — cho phép ``nhớ'' vị trí GPS trước đó để tính tốc độ mà không cần cơ sở dữ liệu bên ngoài (Redis, Memcached).
+    \item Hỗ trợ \textbf{Windowed Aggregation} và \textbf{Stream-Table Join} — hai kỹ thuật cốt lõi cho việc tính tốc độ trung bình (ETA) và phát hiện khoảng cách đến điểm giao (geofencing) trong thời gian thực.
+\end{enumerate}
+
+Bốn yêu cầu xử lý thời gian thực cụ thể:
 
 \begin{itemize}
 
@@ -17,7 +28,7 @@ Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 t
     \begin{itemize}
         \item \textbf{Input:} Luồng tọa độ GPS thô từ tài xế gửi đến Kafka topic \texttt{raw-location-events} (1 điểm/giây).
         \item \textbf{Output:} Dữ liệu vị trí đã được kiểm chứng (filtered/validated) gửi qua WebSocket lên giao diện khách hàng.
-        \item \textbf{Công nghệ bắt buộc:} Kafka Streams -- cần lọc tọa độ không hợp lệ (lat/lng nằm ngoài phạm vi, accuracy > 20m) và deduplicate các sự kiện gửi liên tục trong < 500ms. Điều này đòi hỏi \textbf{event-by-event processing} (xử lý từng sự kiện), không thể dùng batch processing.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams -- cần lọc tọa độ không hợp lệ (lat/lng nằm ngoài phạm vi, accuracy > 20m) và \textit{deduplicate} các sự kiện gửi liên tục trong < 500ms. Điều này đòi hỏi \textbf{\textit{event-by-event processing}} (xử lý từng sự kiện), không thể dùng \textit{batch processing}.
         \item \textbf{Cassandra:} Bảng \texttt{trip\_locations} lưu trữ GPS trace phục vụ phát lại lịch sử.
     \end{itemize}
 
@@ -25,8 +36,8 @@ Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 t
     \item \textbf{Tính toán ETA động (Dynamic ETA Calculation)}
     \begin{itemize}
         \item \textbf{Input:} Luồng vị trí đã lọc + tọa độ điểm đích từ bảng \texttt{orders}.
-        \item \textbf{Output:} ETA (giây) được tính lại mỗi 10 giây: \texttt{ETA = (distance\_km / avg\_speed\_kmh) * 3600}.
-        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{windowed aggregation} (tumbling window 30 giây) để tính tốc độ trung bình từ các GPS points gần nhất. Không thể tính đúng nếu dùng batch vì batch không đủ fresh để cập nhật ETA liên tục.
+        \item \textbf{Output:} ETA (giây) được tính lại mỗi 10 giây: $\text{ETA}_{\text{seconds}} = \frac{\text{distance\_km}}{\text{avg\_speed\_kmh}} \times 3600$.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{\textit{windowed aggregation}} (\textit{tumbling window} 30 giây) để tính tốc độ trung bình từ các GPS points gần nhất. Không thể tính đúng nếu dùng \textit{batch} vì \textit{batch} không đủ \textit{fresh} để cập nhật ETA liên tục.
     \end{itemize}
 
     % --- RT3 ---
@@ -34,7 +45,7 @@ Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 t
     \begin{itemize}
         \item \textbf{Input:} Luồng vị trí đã lọc.
         \item \textbf{Output:} Cảnh báo gửi đến Kafka topic \texttt{alerts} khi tốc độ tức thời vượt ngưỡng 60 km/h.
-        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{stateful processing} -- sử dụng State Store (RocksDB) để lưu vị trí GPS trước đó của mỗi tài xế, tính velocity = distance/time\_delta. Chỉ có stream processing mới so sánh được 2 điểm liên tiếp trong thời gian thực.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams với \textbf{\textit{stateful processing}} -- sử dụng \textit{State Store} (RocksDB) để lưu vị trí GPS trước đó của mỗi tài xế, tính $v = \Delta d / \Delta t$. Chỉ có \textit{stream processing} mới so sánh được 2 điểm liên tiếp trong thời gian thực.
     \end{itemize}
 
     % --- RT4 ---
@@ -42,7 +53,7 @@ Theo quy định của đề bài: \textbf{2 × n = 8 yêu cầu}, với n = 4 t
     \begin{itemize}
         \item \textbf{Input:} Luồng vị trí + bảng tra cứu tọa độ điểm đích (KTable).
         \item \textbf{Output:} Cảnh báo khi tài xế cách điểm giao < 500m.
-        \item \textbf{Công nghệ bắt buộc:} Kafka Streams \textbf{Stream-Table Join} -- join luồng location với KTable chứa tọa độ đích. Mỗi khi có location event mới, hệ thống tra cứu điểm đích tương ứng và tính khoảng cách Haversine. Đây là pattern không thể thực hiện với batch processing.
+        \item \textbf{Công nghệ bắt buộc:} Kafka Streams \textbf{\textit{Stream-Table Join}} -- join luồng location với \textit{KTable} chứa tọa độ đích. Mỗi khi có \textit{location event} mới, hệ thống tra cứu điểm đích tương ứng và tính khoảng cách Haversine. Đây là pattern không thể thực hiện với \textit{batch processing}.
     \end{itemize}
 
 \end{itemize}
