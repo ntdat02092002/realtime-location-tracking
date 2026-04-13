@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kafka Topics - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.topic-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%
+    }
+.topic-card:hover {
+    transform: translatey(-3px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08)
+    }
+.partition-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    text-align: center
+    }
+.key-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #0066CC
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-green-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-1">
+<div class="h-1 w-12 bg-light-blue"></div>
+<h2 class="text-sm font-bold tracking-widest text-gray-400 uppercase">PHẦN 4: APACHE KAFKA</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Topics, Partitions & <span class="text-light-blue">Ordering</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+Thiết kế Kafka Topics cho hệ thống theo dõi giao hàng thời gian thực
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-12 flex-1">
+<div class="grid grid-cols-2 gap-4 h-full">
+<!-- Left Column: Why driver_id as Partition Key -->
+<div class="topic-card">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-key text-primary-blue text-xl"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">Tại sao driver_id làm Partition Key?</h3>
+<p class="text-xs text-gray-500">Đảm bảo tính thứ tự dữ liệu GPS</p>
+</div>
+</div>
+
+<div class="space-y-3 flex-1">
+<!-- Problem Box -->
+<div class="bg-red-50 rounded-lg p-4 border-l-4 border-red-400">
+<div class="flex items-start gap-2">
+<i class="fas fa-exclamation-triangle text-red-500 mt-1"></i>
+<div>
+<p class="text-sm font-bold text-gray-800 mb-1">Vấn đề: GPS data phân tán ngẫu nhiên</p>
+<div class="space-y-2 text-xs text-gray-700">
+<div class="flex items-center gap-2">
+<i class="fas fa-times-circle text-red-500"></i>
+<span>Nhận tọa độ <span class="font-semibold">giây thứ 10</span> trước <span class="font-semibold">giây thứ 5</span></span>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-times-circle text-red-500"></i>
+<span><span class="font-semibold">Sai lệch</span> khi tính tốc độ v = Δd/Δt</span>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-times-circle text-red-500"></i>
+<span><span class="font-semibold">Quỹ đạo sai</span> trên bản đồ</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Solution Box -->
+<div class="bg-green-50 rounded-lg p-4 border-l-4 border-primary-green">
+<div class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green mt-1"></i>
+<div>
+<p class="text-sm font-bold text-gray-800 mb-1">Giải pháp: Partitioning by driver_id</p>
+<div class="space-y-2 text-xs text-gray-700">
+<div class="flex items-center gap-2">
+<i class="fas fa-check text-primary-green"></i>
+<span><span class="font-semibold">Cùng một tài xế</span> → cùng một partition</span>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-check text-primary-green"></i>
+<span><span class="font-semibold">Đảm bảo thứ tự</span> thời gian tuyệt đối</span>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-check text-primary-green"></i>
+<span><span class="font-semibold">Tính toán chính xác</span> tốc độ & ETA</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Right Column: Kafka Topics Design -->
+<div class="topic-card">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-layer-group text-accent-orange text-xl"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">Thiết kế 3 Kafka Topics</h3>
+<p class="text-xs text-gray-500">Partitions & Retention Strategy</p>
+</div>
+</div>
+
+<div class="space-y-3 flex-1">
+<!-- Topic 1: raw-location-events -->
+<div class="bg-white rounded-lg p-2 border-2 border-blue-200">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2">
+<i class="fas fa-map-marker-alt text-primary-blue"></i>
+<p class="text-sm font-bold text-gray-800">raw-location-events</p>
+</div>
+<div class="key-badge">
+<i class="fas fa-key"></i>
+driver_id
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Partitions</p>
+<p class="text-2xl font-bold text-primary-blue">3</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Retention</p>
+<p class="text-lg font-bold text-accent-orange">24h</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Throughput</p>
+<p class="text-lg font-bold text-dark-blue">~1M/s</p>
+</div>
+</div>
+</div>
+
+<!-- Topic 2: processed-updates -->
+<div class="bg-white rounded-lg p-2 border-2 border-green-200">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2">
+<i class="fas fa-check-circle text-primary-green"></i>
+<p class="text-sm font-bold text-gray-800">processed-updates</p>
+</div>
+<div class="key-badge">
+<i class="fas fa-key"></i>
+driver_id
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Partitions</p>
+<p class="text-2xl font-bold text-primary-green">3</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Retention</p>
+<p class="text-lg font-bold text-accent-orange">7 days</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Use Case</p>
+<p class="text-xs font-bold text-dark-blue">WebSocket</p>
+</div>
+</div>
+</div>
+
+<!-- Topic 3: alerts -->
+<div class="bg-white rounded-lg p-2 border-2 border-orange-200">
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-2">
+<i class="fas fa-bell text-accent-orange"></i>
+<p class="text-sm font-bold text-gray-800">alerts</p>
+</div>
+<div class="key-badge">
+<i class="fas fa-key"></i>
+driver_id
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Partitions</p>
+<p class="text-2xl font-bold text-accent-orange">1</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Retention</p>
+<p class="text-lg font-bold text-accent-orange">30 days</p>
+</div>
+<div class="partition-box flex-1">
+<p class="text-xs font-bold text-gray-600 mb-1">Alert Types</p>
+<p class="text-xs font-bold text-dark-blue">SPEEDING</p>
+</div>
+</div>
+</div>
+
+<!-- Consumer Groups Info -->
+<div class="bg-blue-50 rounded-lg p-2 mt-3">
+<div class="flex items-center gap-2 mb-1">
+<i class="fas fa-users text-light-blue"></i>
+<p class="text-sm font-bold text-gray-800">Consumer Groups & Load Balancing</p>
+</div>
+<p class="text-xs text-gray-600"><span class="font-semibold">Kafka tự động rebalance</span> khi thêm instances → Mở rộng ngang dễ dàng</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

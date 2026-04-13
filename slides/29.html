@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kết luận - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue { color: #0066CC }
+.text-light-blue { color: #4A90E2 }
+.text-primary-green { color: #00B894 }
+.text-accent-orange { color: #FF8C42 }
+.text-dark-blue { color: #003366 }
+.bg-primary-blue { background-color: #0066CC }
+.bg-primary-green { background-color: #00B894 }
+.bg-accent-orange { background-color: #FF8C42 }
+.bg-blue-50 { background-color: #eff6ff }
+.bg-green-50 { background-color: #f0fdf4 }
+.bg-orange-50 { background-color: #fff7ed }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.key-point-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border-left: 4px solid;
+    transition: all 0.3s ease
+    }
+.key-point-card:hover {
+    transform: translatey(-3px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1)
+    }
+.qa-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #e2e8f0
+    }
+.question-item {
+    display: flex;
+    align-items: start;
+    gap: 10px;
+    padding: 8px 0
+    }
+.question-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #0066CC;
+    flex-shrink: 0
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-40 h-40 bg-green-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-primary-green"></div>
+<h2 class="text-sm font-bold tracking-widest text-gray-400 uppercase">KẾT THÚC</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+<span class="text-primary-blue">Kết luận</span> & Q&A
+</h1>
+</div>
+
+<!-- Main Content -->
+<div class="content-wrapper" style="display: flex; flex: 1; padding: 20px 60px; gap: 40px">
+<!-- Left Panel: Key Takeaways -->
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800 mb-3">Điểm chính</h3>
+
+<div class="space-y-3">
+<div class="key-point-card border-primary-blue">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-network-wired text-primary-blue text-lg"></i>
+</div>
+<div>
+<h4 class="font-bold text-gray-800 text-sm mb-1">Kiến trúc Event-Driven</h4>
+<p class="text-xs text-gray-600">Bắt buộc cho hệ thống logistics real-time xử lý GPS data stream lớn</p>
+</div>
+</div>
+</div>
+
+<div class="key-point-card border-primary-green">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-infinity text-primary-green text-lg"></i>
+</div>
+<div>
+<h4 class="font-bold text-gray-800 text-sm mb-1">Mở rộng không giới hạn</h4>
+<p class="text-xs text-gray-600">Kafka + Cassandra tạo hệ sinh thái highly available cho hàng triệu thiết bị</p>
+</div>
+</div>
+</div>
+
+<div class="key-point-card border-accent-orange">
+<div class="flex items-start gap-3">
+<div class="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-chart-line text-accent-orange text-lg"></i>
+</div>
+<div>
+<h4 class="font-bold text-gray-800 text-sm mb-1">5Vs Alignment</h4>
+<p class="text-xs text-gray-600">Công nghệ phù hợp để giải quyết Volume, Velocity, Variety, Veracity, and Value</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Performance Metrics -->
+<div class="mt-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl p-3">
+<h4 class="text-sm font-bold text-gray-800 mb-2">Thành tựu hiệu năng</h4>
+<div class="grid grid-cols-3 gap-3">
+<div class="text-center">
+<p class="text-lg font-bold text-primary-blue">&lt;1ms</p>
+<p class="text-[10px] text-gray-500">Latency</p>
+</div>
+<div class="text-center">
+<p class="text-lg font-bold text-primary-green">99.99%</p>
+<p class="text-[10px] text-gray-500">Availability</p>
+</div>
+<div class="text-center">
+<p class="text-lg font-bold text-accent-orange">10K+</p>
+<p class="text-[10px] text-gray-500">GPS/Second</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Right Panel: Q&A Section -->
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800 mb-3">Câu hỏi & Thảo luận</h3>
+
+<div class="qa-card mb-2">
+<div class="question-item">
+<div class="question-icon">
+<i class="fas fa-question"></i>
+</div>
+<div>
+<p class="text-sm font-bold text-gray-800">Scalability Trade-offs</p>
+<p class="text-xs text-gray-600 mt-1">Eventual consistency ảnh hưởng thế nào đến UX trong live tracking?</p>
+</div>
+</div>
+</div>
+
+<div class="qa-card mb-2">
+<div class="question-item">
+<div class="question-icon">
+<i class="fas fa-question"></i>
+</div>
+<div>
+<p class="text-sm font-bold text-gray-800">Độ phức tạp vận hành</p>
+<p class="text-xs text-gray-600 mt-1">Chi phí bảo trì hệ thống polyglot như thế nào?</p>
+</div>
+</div>
+</div>
+
+<div class="qa-card mb-2">
+<div class="question-item">
+<div class="question-icon">
+<i class="fas fa-question"></i>
+</div>
+<div>
+<p class="text-sm font-bold text-gray-800">Giải pháp thay thế</p>
+<p class="text-xs text-gray-600 mt-1">So sánh với managed cloud services (AWS Kinesis, DynamoDB)?</p>
+</div>
+</div>
+</div>
+
+<!-- Contact/Thank You -->
+<div class="mt-3 text-center">
+<div class="inline-block bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-100">
+<i class="fas fa-graduation-cap text-2xl text-primary-blue mb-1"></i>
+<p class="text-sm font-bold text-gray-800">Cảm ơn các bạn đã lắng nghe</p>
+<p class="text-xs text-gray-500 mt-1">Questions and feedback welcome</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Đánh giá hệ thống - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.eval-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column
+    }
+.eval-card:hover {
+    transform: translatey(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+    }
+.eval-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    border-radius: 16px 16px 0 0
+    }
+.card-correctness::before {
+    background-color: #0066CC
+    }
+.card-performance::before {
+    background-color: #00B894
+    }
+.card-effectiveness::before {
+    background-color: #FF8C42
+    }
+.metric-box {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+    }
+.metric-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1
+    }
+.feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #64748b
+    }
+.feature-item i {
+    margin-top: 2px;
+    flex-shrink: 0
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-orange-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-light-blue"></div>
+<h2 class="text-sm font-bold tracking-widest text-light-blue uppercase">PHẦN 4: ĐÁNH GIÁ</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Đánh giá <span class="text-light-blue">Hệ thống</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+Đánh giá theo 3 tiêu chí: tính chính xác dữ liệu, hiệu suất, và khả năng hỗ trợ ứng dụng
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-12 flex-1">
+<div class="grid grid-cols-3 gap-6 h-full">
+<!-- Card 1: Data Correctness -->
+<div class="eval-card card-correctness relative">
+<div class="flex items-center gap-3 mb-5">
+<div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-check-double text-primary-blue text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Data Correctness</h3>
+<p class="text-xs text-gray-500 font-semibold">Tính chính xác dữ liệu</p>
+</div>
+</div>
+
+<div class="space-y-4 flex-1">
+<div class="metric-box">
+<div>
+<p class="text-xs font-bold text-gray-600 uppercase mb-1">Exactly-Once</p>
+<p class="text-sm text-gray-700">Mỗi event xử lý đúng 1 lần</p>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-check-circle text-primary-green text-lg"></i>
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-shield-alt text-primary-blue text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Kafka EOS</span><br/>
+Transactions đảm bảo atomicity
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-filter text-primary-blue text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Data Validation</span><br/>
+Filter invalid coordinates (lat/lng range, accuracy > 20m)
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-code text-primary-blue text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Schema Validation</span><br/>
+JSON payload matches defined schema
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-sync-alt text-primary-blue text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Idempotent Writes</span><br/>
+Cassandra UPSERT prevents duplicates
+</div>
+</div>
+</div>
+</div>
+
+<!-- Card 2: Performance -->
+<div class="eval-card card-performance relative">
+<div class="flex items-center gap-3 mb-5">
+<div class="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-bolt text-primary-green text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Performance</h3>
+<p class="text-xs text-gray-500 font-semibold">Hiệu suất hệ thống</p>
+</div>
+</div>
+
+<div class="space-y-4 flex-1">
+<div class="metric-box">
+<div>
+<p class="text-xs font-bold text-gray-600 uppercase mb-1">End-to-End Latency</p>
+<p class="metric-value text-primary-green">< 500ms</p>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-tachometer-alt text-primary-green text-lg"></i>
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-hdd text-primary-green text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Throughput</span><br/>
+1M+ writes/sec (Cassandra), 86.4M points/day (17 GB)
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-expand-arrows-alt text-primary-green text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Scalability</span><br/>
+Horizontal scaling: Kafka partitions, Cassandra nodes
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-server text-primary-green text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Fault Tolerance</span><br/>
+Kafka replication, RocksDB changelog, Cassandra replication
+</div>
+</div>
+</div>
+</div>
+
+<!-- Card 3: Effectiveness -->
+<div class="eval-card card-effectiveness relative">
+<div class="flex items-center gap-3 mb-5">
+<div class="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-chart-line text-accent-orange text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Effectiveness</h3>
+<p class="text-xs text-gray-500 font-semibold">Hiệu quả hỗ trợ ứng dụng</p>
+</div>
+</div>
+
+<div class="space-y-4 flex-1">
+<div class="metric-box">
+<div>
+<p class="text-xs font-bold text-gray-600 uppercase mb-1">Map Update Frequency</p>
+<p class="metric-value text-accent-orange">1s</p>
+</div>
+<div class="flex items-center gap-2">
+<i class="fas fa-sync-alt text-accent-orange text-lg"></i>
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-map-marker-alt text-accent-orange text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Real-Time Tracking</span><br/>
+Live map updates every second via WebSocket
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-clock text-accent-orange text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Dynamic ETA</span><br/>
+Updates every 10s, accurate based on windowed avg speed
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-bell text-accent-orange text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Proactive Alerts</span><br/>
+Speeding (>60 km/h) and proximity (<500m) notifications
+</div>
+</div>
+
+<div class="feature-item">
+<i class="fas fa-chart-bar text-accent-orange text-sm"></i>
+<div>
+<span class="font-semibold text-gray-800">Analytics Dashboard</span><br/>
+Driver performance metrics, heatmaps, alerts list
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

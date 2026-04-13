@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Giới thiệu - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.feature-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%
+    }
+.feature-card:hover {
+    transform: translatey(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.number-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-50 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-green-50 rounded-tr-full opacity-50 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-6" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-primary-blue"></div>
+<h2 class="text-sm font-bold tracking-widest text-primary-blue uppercase">PHẦN 1: GIỚI THIỆU</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Giới thiệu <span class="text-primary-green">Dự án</span>
+</h1>
+<p class="text-lg text-gray-500 mt-2">
+Hệ thống theo dõi giao hàng thời gian thực với kiến trúc dữ liệu hiện đại
+</p>
+</div>
+
+<!-- Main Content -->
+<div class="relative z-10 px-16 pb-12 flex-1 flex items-center justify-center">
+<div class="text-center max-w-3xl">
+<div class="inline-flex items-center gap-3 bg-primary-blue px-5 py-2 rounded-full mb-8">
+<span class="text-sm font-semibold text-white">PHẦN 1: GIỚI THIỆU</span>
+</div>
+<h2 class="text-6xl font-extrabold text-dark-blue mb-6">
+Hệ thống theo dõi<br/>
+<span class="text-primary-blue">giao hàng</span> thời gian thực
+</h2>
+<div class="flex items-center justify-center gap-2 text-lg text-gray-500 mb-8">
+<i class="fas fa-database text-primary-green"></i>
+<span>Kiến trúc dữ liệu hiện đại</span>
+</div>
+<div class="flex items-center justify-center gap-6 mt-8">
+<div class="flex items-center gap-2 text-sm text-gray-400">
+<i class="fas fa-bolt text-accent-orange"></i>
+<span>Apache Kafka</span>
+</div>
+<div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+<div class="flex items-center gap-2 text-sm text-gray-400">
+<i class="fas fa-server text-primary-green"></i>
+<span>Apache Cassandra</span>
+</div>
+<div class="w-1 h-1 bg-gray-300 rounded-full"></div>
+<div class="flex items-center gap-2 text-sm text-gray-400">
+<i class="fas fa-chart-line text-light-blue"></i>
+<span>Real-time Analytics</span>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

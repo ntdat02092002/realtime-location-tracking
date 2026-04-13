@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Thiết kế hệ thống - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.component-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative
+    }
+.component-card:hover {
+    transform: translatey(-4px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1)
+    }
+.component-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: #e2e8f0
+    }
+.component-card.ingestion::before {
+    background: #0066CC
+    }
+.component-card.kafka::before {
+    background: #4A90E2
+    }
+.component-card.streams::before {
+    background: #00B894
+    }
+.component-card.cassandra::before {
+    background: #FF8C42
+    }
+.component-card.websocket::before {
+    background: #00B894
+    }
+.component-card.ui::before {
+    background: #003366
+    }
+.layer-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0
+    }
+.tech-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: "Courier New", monospace
+    }
+.flow-arrow {
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translatey(-50%);
+    color: #cbd5e1;
+    font-size: 18px
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-orange-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-primary-green"></div>
+<h2 class="text-sm font-bold tracking-widest text-primary-green uppercase">PHẦN 3: HIỆN THỰC HỆ THỐNG</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Kiến trúc tổng quan <span class="text-primary-green">hệ thống</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+Data Engineering Pipeline cho hệ thống theo dõi giao hàng thời gian thực
+</p>
+</div>
+
+<!-- Main Content -->
+<div class="relative z-10 px-16 pb-12 flex-1">
+<div class="grid grid-cols-3 gap-6 h-full">
+<!-- Column 1 -->
+<div class="flex flex-col gap-6">
+<!-- 1. Ingestion Layer -->
+<div class="component-card ingestion" style="height: 280px">
+<div class="flex items-center gap-3 mb-3">
+<div class="layer-number bg-blue-50 text-primary-blue">1</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">Ingestion Layer</h3>
+<p class="text-xs text-gray-500">Nhập liệu dữ liệu</p>
+</div>
+</div>
+<div class="space-y-2 text-sm flex-1">
+<div class="flex items-start gap-1">
+<i class="fas fa-check-circle text-primary-blue text-xs mt-1"></i>
+<p class="text-gray-700"><span class="font-semibold">GPX Simulator</span> - Phát lại tệp GPX (1 point/sec)</p>
+</div>
+<div class="flex items-start gap-1">
+<i class="fas fa-check-circle text-primary-blue text-xs mt-1"></i>
+<p class="text-gray-700"><span class="font-semibold">Data Validator</span> - Kiểm tra tọa độ hợp lệ</p>
+</div>
+<div class="flex items-start gap-1">
+<i class="fas fa-check-circle text-primary-blue text-xs mt-1"></i>
+<p class="text-gray-700">Goroutine mỗi tài xế (2KB stack)</p>
+</div>
+</div>
+<div class="mt-2">
+<div class="tech-tag bg-blue-50 text-primary-blue">
+<i class="fab fa-golang"></i>
+Golang
+</div>
+</div>
+</div>
+
+<!-- 2. Event Bus -->
+<div class="component-card kafka flex-1">
+<div class="flex items-center gap-3 mb-3">
+<div class="layer-number bg-blue-50 text-light-blue">2</div>
+<div>
+<h3 class="text-base font-bold text-gray-800">Event Bus</h3>
+<p class="text-xs text-gray-500">Hệ thống truyền phát sự kiện</p>
+</div>
+</div>
+<div class="space-y-2 text-xs flex-1">
+<div class="bg-gray-50 p-2 rounded-lg">
+<div class="flex items-center justify-between mb-2">
+<span class="font-semibold text-gray-700">Topics</span>
+<span class="text-xs text-gray-500">3 partitions</span>
+</div>
+<div class="flex flex-wrap gap-1">
+<span class="tech-tag bg-green-50 text-primary-green">raw-location-events</span>
+<span class="tech-tag bg-orange-50 text-accent-orange">alerts</span>
+<span class="tech-tag bg-blue-50 text-light-blue">processed-updates</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-xs text-gray-600">
+<i class="fas fa-key text-light-blue"></i>
+<span><span class="font-semibold">Key:</span> driver_id (ensure ordering)</span>
+</div>
+</div>
+<div class="mt-2">
+<div class="tech-tag bg-blue-50 text-light-blue">
+<i class="fas fa-bus"></i>
+Apache Kafka
+</div>
+</div>
+</div>
+</div>
+
+<!-- Column 2 -->
+<div class="flex flex-col">
+<!-- 3. Stream Processing -->
+<div class="component-card streams h-full">
+<div class="flex items-center gap-3 mb-3">
+<div class="layer-number bg-green-50 text-primary-green">3</div>
+<div>
+<h3 class="text-base font-bold text-gray-800">Stream Processing</h3>
+<p class="text-xs text-gray-500">Xử lý luồng thời gian thực</p>
+</div>
+</div>
+<div class="flex-1 flex flex-col justify-center space-y-3">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-blue-50 text-primary-blue flex items-center justify-center flex-shrink-0">
+<i class="fas fa-filter text-xs"></i>
+</div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-800">Filter</p>
+<p class="text-xs text-gray-500">Loại bỏ tọa độ không hợp lệ</p>
+</div>
+</div>
+<div class="flex items-center justify-center">
+<i class="fas fa-arrow-down text-gray-300"></i>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-green-50 text-primary-green flex items-center justify-center flex-shrink-0">
+<i class="fas fa-tachometer-alt text-xs"></i>
+</div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-800">Speed/ETA Calculation</p>
+<p class="text-xs text-gray-500">Stateful processing (RocksDB)</p>
+</div>
+</div>
+<div class="flex items-center justify-center">
+<i class="fas fa-arrow-down text-gray-300"></i>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-orange-50 text-accent-orange flex items-center justify-center flex-shrink-0">
+<i class="fas fa-code-branch text-xs"></i>
+</div>
+<div class="flex-1">
+<p class="text-sm font-semibold text-gray-800">Branch</p>
+<p class="text-xs text-gray-500">SPEEDING | PROXIMITY | VALID</p>
+</div>
+</div>
+</div>
+<div class="mt-4">
+<div class="tech-tag bg-green-50 text-primary-green">
+<i class="fab fa-java"></i>
+Kafka Streams (Java)
+</div>
+</div>
+</div>
+</div>
+
+<!-- Column 3 -->
+<div class="flex flex-col gap-6">
+<!-- 4. Storage Layer -->
+<div class="component-card cassandra" style="height: 240px">
+<div class="flex items-center gap-3 mb-3">
+<div class="layer-number bg-orange-50 text-accent-orange">4</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">Storage Layer</h3>
+<p class="text-xs text-gray-500">Lưu trữ dữ liệu</p>
+</div>
+</div>
+<div class="flex-1 space-y-2 text-sm">
+<div class="flex items-center gap-1">
+<i class="fas fa-database text-accent-orange text-xs"></i>
+<span class="text-gray-700"><span class="font-semibold">5 Tables:</span> orders, trip_locations, alerts, trip_metadata, driver_analytics</span>
+</div>
+<div class="flex items-center gap-1">
+<i class="fas fa-hdd text-accent-orange text-xs"></i>
+<span class="text-gray-700">1M+ writes/sec, masterless architecture</span>
+</div>
+<div class="flex items-center gap-1">
+<i class="fas fa-expand-arrows-alt text-accent-orange text-xs"></i>
+<span class="text-gray-700">Horizontal scaling, time-series optimized</span>
+</div>
+</div>
+<div class="mt-2">
+<div class="tech-tag bg-orange-50 text-accent-orange">
+<i class="fas fa-database"></i>
+Apache Cassandra
+</div>
+</div>
+</div>
+
+<!-- 5. WebSocket Hub -->
+<div class="component-card websocket" style="height: 140px">
+<div class="flex items-center gap-3 mb-3">
+<div class="layer-number bg-green-50 text-primary-green">5</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">WebSocket Hub</h3>
+<p class="text-xs text-gray-500">Real-time push</p>
+</div>
+</div>
+<div class="flex items-center gap-2 text-sm text-gray-700 mb-2">
+<i class="fas fa-bolt text-primary-green text-xs"></i>
+<span>Push updates to clients (<500ms latency)</span>
+</div>
+<div class="tech-tag bg-green-50 text-primary-green">
+<i class="fab fa-golang"></i>
+Golang
+</div>
+</div>
+
+<!-- 6. UI -->
+<div class="component-card ui" style="height: 120px">
+<div class="flex items-center gap-3">
+<div class="layer-number bg-gray-100 text-dark-blue">6</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">Customer & Driver UI</h3>
+<div class="flex items-center gap-2 mt-1">
+<i class="fas fa-map text-dark-blue text-xs"></i>
+<span class="text-sm text-gray-700">React + Leaflet (OpenStreetMap)</span>
+</div>
+</div>
+<div class="tech-tag bg-gray-100 text-dark-blue">
+<i class="fab fa-react"></i>
+React
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

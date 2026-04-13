@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Apache Kafka - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.kafka-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    height: 100%
+    }
+.kafka-card:hover {
+    transform: translatey(-3px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08)
+    }
+.topic-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600
+    }
+.pub-sub-flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 10px;
+    border: 1px solid #bfdbfe
+    }
+.pub-sub-item {
+    background: white;
+    border-radius: 8px;
+    padding: 8px 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    flex: 1
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-green-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-light-blue"></div>
+<h2 class="text-sm font-bold tracking-widest text-gray-400 uppercase">PHẦN 4: APACHE KAFKA</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Apache Kafka - <span class="text-light-blue">Distributed Streaming Platform</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+Hệ thần kinh trung tâm của kiến trúc xử lý dữ liệu thời gian thực
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-12 flex-1">
+<div class="grid grid-cols-4 gap-4 h-full">
+<!-- Column 1: Kafka Overview -->
+<div class="kafka-card">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-bus text-light-blue text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Khái niệm</h3>
+<p class="text-xs text-gray-500">Apache Kafka là gì?</p>
+</div>
+</div>
+<div class="space-y-3 flex-1">
+<div class="bg-blue-50 rounded-lg p-2">
+<p class="text-xs font-bold text-light-blue mb-1">Bản chất</p>
+<p class="text-sm text-gray-700"><span class="font-semibold">Distributed Commit Log</span></p>
+<p class="text-xs text-gray-600 mt-1">Dữ liệu lưu trữ bền vững, append-only, theo thứ tự thời gian</p>
+</div>
+<div class="flex items-center gap-3 text-xs">
+<i class="fas fa-hdd text-light-blue"></i>
+<span class="text-gray-600"><span class="font-bold text-dark-blue">Sequential I/O</span> → 1M+ messages/sec</span>
+</div>
+<div class="flex items-center gap-3 text-xs">
+<i class="fas fa-clock text-light-blue"></i>
+<span class="text-gray-600"><span class="font-bold text-dark-blue">Low latency</span> → Sub-second processing</span>
+</div>
+<div class="flex items-center gap-3 text-xs">
+<i class="fas fa-expand-arrows-alt text-light-blue"></i>
+<span class="text-gray-600"><span class="font-bold text-dark-blue">Horizontal scaling</span> → Add brokers easily</span>
+</div>
+</div>
+</div>
+
+<!-- Column 2: Pub/Sub Model -->
+<div class="kafka-card col-span-2">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-exchange-alt text-primary-green text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Mô hình</h3>
+<p class="text-xs text-gray-500">Publish/Subscribe Pattern</p>
+</div>
+</div>
+<div class="pub-sub-flow mb-4">
+<div class="pub-sub-item">
+<i class="fas fa-upload text-light-blue text-lg mb-2"></i>
+<p class="text-xs font-bold text-gray-800">Producer</p>
+<p class="text-[10px] text-gray-600">GPX Simulator</p>
+</div>
+<i class="fas fa-arrow-right text-blue-300 text-lg"></i>
+<div class="pub-sub-item">
+<i class="fas fa-bus text-light-blue text-lg mb-2"></i>
+<p class="text-xs font-bold text-gray-800">Kafka Broker</p>
+<p class="text-[10px] text-gray-600">3 Topics</p>
+</div>
+<i class="fas fa-arrow-right text-blue-300 text-lg"></i>
+<div class="pub-sub-item">
+<i class="fas fa-download text-light-blue text-lg mb-2"></i>
+<p class="text-xs font-bold text-gray-800">Consumer</p>
+<p class="text-[10px] text-gray-600">Streams, WebSocket</p>
+</div>
+</div>
+<div class="bg-green-50 rounded-lg p-2">
+<p class="text-xs font-bold text-primary-green mb-2">Vai trò trong hệ thống</p>
+<div class="space-y-2 text-xs text-gray-700">
+<div class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green mt-0.5"></i>
+<span><span class="font-semibold">Hệ thần kinh trung tâm</span> của kiến trúc</span>
+</div>
+<div class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green mt-0.5"></i>
+<span><span class="font-semibold">Decoupling</span> producers và consumers</span>
+</div>
+<div class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green mt-0.5"></i>
+<span><span class="font-semibold">Buffering</span> dữ liệu khi load cao</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Column 3: Kafka Topics -->
+<div class="kafka-card">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-layer-group text-accent-orange text-2xl"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-gray-800">Kafka Topics</h3>
+<p class="text-xs text-gray-500">3 topics chính</p>
+</div>
+</div>
+<div class="space-y-3 flex-1">
+<!-- Topic 1 -->
+<div class="bg-blue-50 rounded-lg p-2 border-l-4 border-primary-blue">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-map-marker-alt text-primary-blue"></i>
+<p class="text-sm font-bold text-gray-800">raw-location-events</p>
+</div>
+<span class="topic-badge bg-blue-100 text-primary-blue">24h</span>
+</div>
+<div class="text-xs text-gray-600 space-y-1">
+<p>• GPS thô từ GPX Simulator</p>
+<p>• Partition key: <span class="font-semibold">driver_id</span></p>
+<p>• 1 point/tài xế/giây</p>
+</div>
+</div>
+
+<!-- Topic 2 -->
+<div class="bg-green-50 rounded-lg p-2 border-l-4 border-primary-green">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-check-circle text-primary-green"></i>
+<p class="text-sm font-bold text-gray-800">processed-updates</p>
+</div>
+<span class="topic-badge bg-green-100 text-primary-green">7 days</span>
+</div>
+<div class="text-xs text-gray-600 space-y-1">
+<p>• Vị trí đã xử lý + ETA</p>
+<p>• Partition key: <span class="font-semibold">driver_id</span></p>
+<p>• Input cho WebSocket Hub</p>
+</div>
+</div>
+
+<!-- Topic 3 -->
+<div class="bg-orange-50 rounded-lg p-2 border-l-4 border-accent-orange">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-2">
+<i class="fas fa-bell text-accent-orange"></i>
+<p class="text-sm font-bold text-gray-800">alerts</p>
+</div>
+<span class="topic-badge bg-orange-100 text-accent-orange">30 days</span>
+</div>
+<div class="text-xs text-gray-600 space-y-1">
+<p>• Cảnh báo SPEEDING/PROXIMITY</p>
+<p>• Partition key: <span class="font-semibold">driver_id</span></p>
+<p>• Input cho Admin Dashboard</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

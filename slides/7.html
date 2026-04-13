@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Các bên liên quan - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-dots {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.4
+    }
+.stakeholder-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden
+    }
+.stakeholder-card:hover {
+    transform: translatey(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1)
+    }
+.border-t-4-blue {
+    border-top: 4px solid #0066CC
+    }
+.border-t-4-green {
+    border-top: 4px solid #00B894
+    }
+.border-t-4-orange {
+    border-top: 4px solid #FF8C42
+    }
+.role-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px
+    }
+.interaction-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-dots z-0"></div>
+<div class="absolute -top-20 -right-20 w-80 h-80 bg-blue-50 rounded-full opacity-50 z-0"></div>
+<div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-50 to-transparent -z-10"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-accent-orange"></div>
+<h2 class="text-sm font-bold tracking-widest text-gray-400 uppercase">PHẦN 2: PHÂN TÍCH YÊU CẦU</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Xác định <span class="text-primary-blue">Stakeholders</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+3 nhóm người dùng chính tương tác với hệ thống theo dõi giao hàng
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-8 flex-1">
+<div class="grid grid-cols-3 gap-6 h-full">
+<!-- Stakeholder 1: Khách hàng -->
+<div class="stakeholder-card border-t-4-blue flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="role-icon bg-blue-50 text-primary-blue">
+<i class="fas fa-user"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-dark-blue">Khách hàng</h3>
+<p class="text-xs text-gray-500 font-medium">Customer</p>
+</div>
+</div>
+
+<div class="flex-1">
+<div class="bg-blue-50 rounded-lg p-3 mb-3">
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Mục đích</p>
+<p class="text-sm text-gray-700">Theo dõi đơn hàng & nhận thông báo khi tài xế đến gần</p>
+</div>
+
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Tương tác với hệ thống</p>
+<div class="flex flex-wrap gap-2">
+<span class="interaction-badge bg-blue-50 text-primary-blue border border-blue-200">
+<i class="fas fa-mobile-alt text-xs"></i>
+Mobile App
+</span>
+<span class="interaction-badge bg-blue-50 text-primary-blue border border-blue-200">
+<i class="fas fa-map text-xs"></i>
+Live Map
+</span>
+<span class="interaction-badge bg-blue-50 text-primary-blue border border-blue-200">
+<i class="fas fa-bell text-xs"></i>
+Notifications
+</span>
+</div>
+</div>
+</div>
+
+<!-- Stakeholder 2: Tài xế -->
+<div class="stakeholder-card border-t-4-green flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="role-icon bg-green-50 text-primary-green">
+<i class="fas fa-truck"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-dark-blue">Tài xế</h3>
+<p class="text-xs text-gray-500 font-medium">Driver</p>
+</div>
+</div>
+
+<div class="flex-1">
+<div class="bg-green-50 rounded-lg p-3 mb-3">
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Mục đích</p>
+<p class="text-sm text-gray-700">Nhận đơn, gửi vị trí GPS liên tục & cập nhật trạng thái giao hàng</p>
+</div>
+
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Tương tác với hệ thống</p>
+<div class="flex flex-wrap gap-2">
+<span class="interaction-badge bg-green-50 text-primary-green border border-green-200">
+<i class="fas fa-clipboard-check text-xs"></i>
+Status Update
+</span>
+<span class="interaction-badge bg-green-50 text-primary-green border border-green-200">
+<i class="fas fa-coins text-xs"></i>
+Fare Tracking
+</span>
+</div>
+</div>
+</div>
+
+<!-- Stakeholder 3: Quản trị viên -->
+<div class="stakeholder-card border-t-4-orange flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="role-icon bg-orange-50 text-accent-orange">
+<i class="fas fa-tachometer-alt"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-dark-blue">Quản trị viên</h3>
+<p class="text-xs text-gray-500 font-medium">Admin</p>
+</div>
+</div>
+
+<div class="flex-1">
+<div class="bg-orange-50 rounded-lg p-3 mb-3">
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Mục đích</p>
+<p class="text-sm text-gray-700">Giám sát hệ thống, phân tích hiệu suất & xử lý cảnh báo</p>
+</div>
+
+<p class="text-xs font-bold text-gray-600 uppercase mb-2">Tương tác với hệ thống</p>
+<div class="flex flex-wrap gap-2">
+<span class="interaction-badge bg-orange-50 text-accent-orange border border-orange-200">
+<i class="fas fa-chart-line text-xs"></i>
+Dashboard
+</span>
+<span class="interaction-badge bg-orange-50 text-accent-orange border border-orange-200">
+<i class="fas fa-exclamation-triangle text-xs"></i>
+Alert System
+</span>
+<span class="interaction-badge bg-orange-50 text-accent-orange border border-orange-200">
+<i class="fas fa-history text-xs"></i>
+Playback
+</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

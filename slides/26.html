@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>So sánh giải pháp xử lý stream - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue { color: #0066CC }
+.text-light-blue { color: #4A90E2 }
+.text-primary-green { color: #00B894 }
+.text-accent-orange { color: #FF8C42 }
+.text-dark-blue { color: #003366 }
+.bg-primary-blue { background-color: #0066CC }
+.bg-primary-green { background-color: #00B894 }
+.bg-accent-orange { background-color: #FF8C42 }
+.bg-blue-50 { background-color: #eff6ff }
+.bg-green-50 { background-color: #f0fdf4 }
+.bg-orange-50 { background-color: #fff7ed }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.solution-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s ease
+    }
+.solution-card.chosen {
+    border-color: #0066CC;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1)
+    }
+.solution-card:hover {
+    transform: translatey(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08)
+    }
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600
+    }
+.check-icon { color: #00B894 }
+.cross-icon { color: #EF4444 }
+</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-orange-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-8 pb-2" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-1">
+<div class="h-1 w-12 bg-accent-orange"></div>
+<h2 class="text-xs font-bold tracking-widest text-gray-400 uppercase">GIẢI PHÁP THAY THẾ & SO SÁNH</h2>
+</div>
+<h1 class="text-3xl font-extrabold text-dark-blue">
+So sánh <span class="text-accent-orange">Stream Processing</span>
+</h1>
+<p class="text-xs text-gray-500 mt-1 max-w-3xl">
+Đánh giá Kafka Streams vs Spark Streaming vs Apache Flink cho bài toán Real-Time GPS Tracking
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-4 flex-1">
+<div class="grid grid-cols-3 gap-4 h-full">
+<!-- Column 1: Kafka Streams (Chosen) -->
+<div class="solution-card chosen flex flex-col">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-bolt text-primary-blue text-xl"></i>
+</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">Kafka Streams</h3>
+<p class="text-xs text-gray-500">Embedded Library (Java)</p>
+</div>
+<div class="feature-tag bg-green-50 text-primary-green">
+<i class="fas fa-check text-xs"></i>
+ĐÃ CHỌN
+</div>
+</div>
+
+<div class="space-y-2 flex-1">
+<div class="bg-blue-50 rounded-lg p-2">
+<p class="text-xs font-bold text-primary-blue mb-1">Ưu điểm chính</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Sub-ms latency</span> - Event-at-a-time</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">RocksDB embedded</span> - No external state</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Exactly-Once V2</span> - Native Kafka transactions</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">1 file JAR</span> - Deployment đơn giản</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-white rounded-lg p-2 border">
+<p class="text-xs font-bold text-gray-800 mb-1">Mô hình xử lý</p>
+<div class="flex items-center gap-2 text-xs">
+<i class="fas fa-stream text-primary-blue text-xs"></i>
+<span class="font-semibold">Event-at-a-time</span>
+</div>
+<p class="text-[10px] text-gray-600 ml-6">• Process mỗi GPS point ngay khi đến</p>
+<p class="text-[10px] text-gray-600 ml-6">• Không đợi batch, latency sub-ms</p>
+</div>
+
+<div class="bg-green-50 rounded-lg p-2 border-l-4 border-primary-green">
+<p class="text-xs font-bold text-gray-800"><i class="fas fa-trophy text-accent-orange mr-1"></i>Phù hợp cho demo</p>
+<p class="text-[10px] text-gray-600 mt-1">Deployment đơn giản, không cần cluster riêng</p>
+</div>
+</div>
+</div>
+
+<!-- Column 2: Spark Streaming -->
+<div class="solution-card flex flex-col">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-fire text-accent-orange text-xl"></i>
+</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">Spark Streaming</h3>
+<p class="text-xs text-gray-500">Micro-batching (Scala/Python)</p>
+</div>
+</div>
+
+<div class="space-y-2 flex-1">
+<div class="bg-orange-50 rounded-lg p-2">
+<p class="text-xs font-bold text-accent-orange mb-1">Hạn chế chính</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">Batch interval</span> - 0.5-2s minimum latency</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">GPS tracker bị giật</span> - Không mượt mà</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">External state</span> - Cần Redis/HDFS</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">Cluster riêng</span> - Master/Worker architecture</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-white rounded-lg p-2 border">
+<p class="text-xs font-bold text-gray-800 mb-1">Mô hình xử lý</p>
+<div class="flex items-center gap-2 text-xs">
+<i class="fas fa-clock text-accent-orange text-xs"></i>
+<span class="font-semibold">Micro-batching</span>
+</div>
+<p class="text-[10px] text-gray-600 ml-6">• Gom events thành batch nhỏ (0.5-2s)</p>
+<p class="text-[10px] text-gray-600 ml-6">• Process cả batch cùng lúc</p>
+</div>
+
+<div class="bg-red-50 rounded-lg p-2 border-l-4 border-red-300">
+<p class="text-xs font-bold text-gray-800"><i class="fas fa-exclamation-triangle text-red-500 mr-1"></i>Không phù hợp</p>
+<p class="text-[10px] text-gray-600 mt-1">Batch interval violates <500ms latency requirement</p>
+</div>
+</div>
+</div>
+
+<!-- Column 3: Apache Flink -->
+<div class="solution-card flex flex-col">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-cogs text-primary-green text-xl"></i>
+</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">Apache Flink</h3>
+<p class="text-xs text-gray-500">Distributed Engine (Java/Scala)</p>
+</div>
+</div>
+
+<div class="space-y-2 flex-1">
+<div class="bg-green-50 rounded-lg p-2">
+<p class="text-xs font-bold text-primary-green mb-1">Ưu điểm</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Event-at-a-time</span> - Latency rất thấp</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">State management</span> - Built-in state backend</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Exactly-once</span> - Guaranteed processing</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-orange-50 rounded-lg p-2">
+<p class="text-xs font-bold text-accent-orange mb-1">Nhược điểm</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">Cluster riêng</span> - JobManager/TaskManager</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">Phức tạp vận hành</span> - Setup, monitoring</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle cross-icon text-xs mt-0.5"></i>
+<span><span class="font-semibold">Overhead</span> - Cho dự án demo quy mô nhỏ</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-blue-50 rounded-lg p-2 border-l-4 border-primary-blue">
+<p class="text-xs font-bold text-gray-800"><i class="fas fa-info-circle text-light-blue mr-1"></i>Production quy mô lớn</p>
+<p class="text-[10px] text-gray-600 mt-1">Performance tương đương Kafka Streams nhưng phức tạp hơn</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

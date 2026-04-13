@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>So sánh giải pháp lưu trữ - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue { color: #0066CC }
+.text-light-blue { color: #4A90E2 }
+.text-primary-green { color: #00B894 }
+.text-accent-orange { color: #FF8C42 }
+.text-dark-blue { color: #003366 }
+.bg-primary-blue { background-color: #0066CC }
+.bg-primary-green { background-color: #00B894 }
+.bg-accent-orange { background-color: #FF8C42 }
+.bg-blue-50 { background-color: #eff6ff }
+.bg-green-50 { background-color: #f0fdf4 }
+.bg-orange-50 { background-color: #fff7ed }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.solution-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 2px solid #f1f5f9;
+    transition: all 0.3s ease
+    }
+.solution-card.chosen {
+    border-color: #00B894;
+    box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1)
+    }
+.solution-card:hover {
+    transform: translatey(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08)
+    }
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600
+    }
+</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-green-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-orange-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-8 pb-2" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-1">
+<div class="h-1 w-12 bg-accent-orange"></div>
+<h2 class="text-xs font-bold tracking-widest text-gray-400 uppercase">GIẢI PHÁP THAY THẾ & SO SÁNH</h2>
+</div>
+<h1 class="text-3xl font-extrabold text-dark-blue">
+So sánh <span class="text-accent-orange">Lưu trữ Dữ liệu</span>
+</h1>
+<p class="text-xs text-gray-500 mt-1 max-w-3xl">
+Đánh giá Cassandra vs PostgreSQL cho bài toán GPS Tracking với write-heavy workload
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-4 flex-1">
+<div class="grid grid-cols-2 gap-6 h-full">
+<!-- Column 1: Apache Cassandra -->
+<div class="solution-card chosen flex flex-col">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-database text-primary-green text-xl"></i>
+</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">Apache Cassandra</h3>
+<p class="text-xs text-gray-500">NoSQL Database (Đã chọn)</p>
+</div>
+<div class="feature-tag bg-green-50 text-primary-green">
+<i class="fas fa-check text-xs"></i>
+TỐI ƯU
+</div>
+</div>
+
+<div class="space-y-2 flex-1">
+<div class="bg-green-50 rounded-lg p-2">
+<p class="text-xs font-bold text-primary-green mb-1">Ưu điểm chính</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">1M+ writes/sec</span> - Masterless architecture</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Time-series optimized</span> - Clustering key by timestamp</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Horizontal scaling</span> - Linear scalability</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">No SPOF</span> - Auto failover</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-check-circle text-primary-green text-xs mt-0.5"></i>
+<span><span class="font-semibold">Schema flexible</span> - Add columns without downtime</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-blue-50 rounded-lg p-2 border-l-4 border-primary-blue">
+<div class="flex items-center gap-2 mb-1">
+<i class="fas fa-bullseye text-primary-blue text-xs"></i>
+<p class="text-xs font-bold text-gray-800">Phù hợp cho Big Data</p>
+</div>
+<p class="text-[10px] text-gray-600">• 86.4 triệu GPS points/ngày (17 GB)</p>
+<p class="text-[10px] text-gray-600">• Time-series queries cần tốc độ cao</p>
+<p class="text-[10px] text-gray-600">• Horizontal scaling dễ dàng</p>
+</div>
+</div>
+</div>
+
+<!-- Column 2: PostgreSQL -->
+<div class="solution-card flex flex-col">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-table text-accent-orange text-xl"></i>
+</div>
+<div class="flex-1">
+<h3 class="text-base font-bold text-gray-800">PostgreSQL</h3>
+<p class="text-xs text-gray-500">Relational Database</p>
+</div>
+</div>
+
+<div class="space-y-2 flex-1">
+<div class="bg-orange-50 rounded-lg p-2">
+<p class="text-xs font-bold text-accent-orange mb-1">Hạn chế chính</p>
+<ul class="text-xs text-gray-700 space-y-1">
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle text-red-500 text-xs mt-0.5"></i>
+<span><span class="font-semibold">10k-50k writes/sec</span> - Single primary bottleneck</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle text-red-500 text-xs mt-0.5"></i>
+<span><span class="font-semibold">Vertical scaling</span> - Cần máy chủ lớn, tốn kém</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle text-red-500 text-xs mt-0.5"></i>
+<span><span class="font-semibold">Manual sharding</span> - Phức tạp, dễ lỗi</span>
+</li>
+<li class="flex items-start gap-2">
+<i class="fas fa-times-circle text-red-500 text-xs mt-0.5"></i>
+<span><span class="font-semibold">ALTER TABLE locks</span> - Block writes trên large tables</span>
+</li>
+</ul>
+</div>
+
+<div class="bg-green-50 rounded-lg p-2 border-l-4 border-primary-green">
+<div class="flex items-center gap-2 mb-1">
+<i class="fas fa-info-circle text-primary-green text-xs"></i>
+<p class="text-xs font-bold text-gray-800">Phù hợp cho OLTP</p>
+</div>
+<p class="text-[10px] text-gray-600">• ACID transactions đảm bảo tính toàn vẹn</p>
+<p class="text-[10px] text-gray-600">• Complex joins và relational queries</p>
+<p class="text-[10px] text-gray-600">• Ứng dụng cần tính nhất quán cao</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

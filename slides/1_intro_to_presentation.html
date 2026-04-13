@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Hệ thống theo dõi giao hàng thời gian thực</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Geometric Decorations -->
+<svg class="absolute top-0 right-0 w-full h-full z-0" preserveaspectratio="xMidYMid slice" viewbox="0 0 1280 720">
+<path d="M600,0 L1280,0 L1280,720 L800,720 C950,500 750,200 600,0 Z" fill="#F4F9FF"></path>
+<circle cx="1180" cy="120" fill="#E0F2F1" opacity="0.5" r="160"></circle>
+<circle cx="1180" cy="120" fill="#00B894" opacity="0.8" r="20"></circle>
+<path d="M1280,450 L1280,720 L1000,720 L1280,450 Z" fill="#E6F4FF"></path>
+<rect fill="#4A90E2" height="60" opacity="0.2" width="60" x="1180" y="620"></rect>
+<rect fill="#0066CC" height="60" opacity="0.1" width="60" x="1220" y="660"></rect>
+<line stroke="#CBD5E0" stroke-dasharray="5,5" stroke-width="2" x1="900" x2="1050" y1="200" y2="300"></line>
+<line stroke="#CBD5E0" stroke-dasharray="5,5" stroke-width="2" x1="1050" x2="1180" y1="300" y2="120"></line>
+<circle cx="900" cy="200" fill="#FF8C42" r="8"></circle>
+<circle cx="1050" cy="300" fill="#4A90E2" r="12"></circle>
+</svg>
+
+<!-- Left Side Accent Border -->
+<div class="absolute left-0 top-0 bottom-0 w-3 flex flex-col justify-end pb-0">
+<div class="w-full flex-grow bg-gray-100"></div>
+<div class="w-full h-40 bg-primary-blue"></div>
+<div class="w-full h-24 bg-primary-green"></div>
+<div class="w-full h-12 bg-accent-orange"></div>
+</div>
+
+<!-- Main Content Area -->
+<div class="relative z-10 flex flex-col justify-center h-full pl-24 pr-12 w-3/5" style="flex-shrink: 0">
+<div class="flex items-center space-x-4 mb-8">
+<div class="px-4 py-1.5 rounded bg-blue-50 border border-blue-100">
+<p class="text-xs font-bold tracking-widest text-primary-blue">KỸ THUẬT DỮ LIỆU - CO5173</p>
+</div>
+<div class="px-4 py-1.5 rounded bg-orange-50 border border-orange-100">
+<p class="text-xs font-bold tracking-widest text-accent-orange">NĂM HỌC 2025-2026</p>
+</div>
+</div>
+
+<div class="mb-10">
+<div class="bg-accent-orange h-2 w-32 mb-6"></div>
+<h1 class="text-5xl font-extrabold leading-tight text-dark-blue mb-6">
+<p>Hệ thống theo dõi</p>
+<p class="text-primary-blue">giao hàng thời gian thực</p>
+</h1>
+<p class="text-xl text-gray-500 font-light max-w-xl leading-normal">
+Real-Time Delivery Tracking System<br/>
+Data-Driven Application with Apache Kafka & Cassandra
+</p>
+</div>
+
+<div class="mt-8 flex items-start space-x-16">
+<div>
+<p class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-2">Giảng viên hướng dẫn</p>
+<div class="flex items-center">
+<div class="w-10 h-10 rounded-lg bg-primary-green text-white flex items-center justify-center mr-3 shadow-md">
+<i class="fas fa-user-tie text-lg"></i>
+</div>
+<p class="text-lg font-bold text-gray-800">PGS.TS Võ Thị Ngọc Châu</p>
+</div>
+</div>
+<div>
+<p class="text-xs uppercase tracking-wider text-gray-400 font-bold mb-2">Thời gian</p>
+<div class="flex items-center">
+<div class="w-10 h-10 rounded-lg bg-primary-blue text-white flex items-center justify-center mr-3 shadow-md">
+<i class="far fa-calendar-alt text-lg"></i>
+</div>
+<p class="text-lg font-bold text-gray-800">Tháng 04/2026</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Right Side Info & Logo -->
+<div class="absolute right-16 top-1/2 transform -translate-y-1/2 z-10 flex flex-col items-center justify-center">
+<!-- University Logo -->
+<div class="mb-10 w-48 h-48 flex items-center justify-center">
+<img alt="Logo BK" class="w-full h-full object-contain" src="https://z-cdn-media.chatglm.cn/files/ee2e7d00-7880-483c-8180-d49393bdf9a7.png?auth_key=1876013418-a2562fd22a7844a7b729ecf8be522e19-0-8bdea6a12ad996edcb1b4c5ba9e6d9e8"/>
+</div>
+
+<!-- Team Members -->
+<div class="w-80 bg-white rounded-xl shadow-xl border border-gray-100 p-6">
+<h3 class="text-sm font-bold text-gray-500 uppercase mb-4 flex items-center">
+<i class="fas fa-users mr-2 text-primary-blue"></i>
+Nhóm thực hiện
+</h3>
+<div class="space-y-3 text-sm text-gray-700">
+<div class="flex justify-between items-center">
+<span class="font-medium">Lê Phương Các</span>
+<span class="text-gray-400">2570746</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-medium">Nguyễn Thành Đạt</span>
+<span class="text-gray-400">2570163</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-medium">Dương Hải Lâm</span>
+<span class="text-gray-400">2211807</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-medium">Huỳnh Thị Minh Tâm</span>
+<span class="text-gray-400">2213013</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

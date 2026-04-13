@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cassandra Data Model - Hệ thống theo dõi giao hàng</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>body {
+    margin: 0;
+    padding: 0;
+    font-family: "Inter", sans-serif;
+    background-color: #fff
+    }
+.slide-container {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background-color: #fff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column
+    }
+.text-primary-blue {
+    color: #0066CC
+    }
+.text-light-blue {
+    color: #4A90E2
+    }
+.text-primary-green {
+    color: #00B894
+    }
+.text-accent-orange {
+    color: #FF8C42
+    }
+.text-dark-blue {
+    color: #003366
+    }
+.bg-primary-blue {
+    background-color: #0066CC
+    }
+.bg-primary-green {
+    background-color: #00B894
+    }
+.bg-accent-orange {
+    background-color: #FF8C42
+    }
+.bg-blue-50 {
+    background-color: #eff6ff
+    }
+.bg-green-50 {
+    background-color: #f0fdf4
+    }
+.bg-orange-50 {
+    background-color: #fff7ed
+    }
+.bg-grid-pattern {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.3
+    }
+.schema-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease
+    }
+.schema-card:hover {
+    transform: translatey(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08)
+    }
+.key-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #0066CC
+    }
+.sql-code {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #334155
+    }
+.sql-keyword {
+    color: #0066CC;
+    font-weight: 700
+    }
+.sql-type {
+    color: #00B894
+    }</style>
+</head>
+<body>
+<div class="slide-container">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern z-0"></div>
+<div class="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-bl-full opacity-40 z-0"></div>
+<div class="absolute bottom-0 left-0 w-64 h-64 bg-orange-50 rounded-tr-full opacity-40 z-0"></div>
+
+<!-- Header -->
+<div class="relative z-10 px-16 pt-10 pb-4" style="flex-shrink: 0">
+<div class="flex items-center gap-4 mb-2">
+<div class="h-1 w-12 bg-accent-orange"></div>
+<h2 class="text-sm font-bold tracking-widest text-gray-400 uppercase">PHẦN 5: APACHE CASSANDRA</h2>
+</div>
+<h1 class="text-4xl font-extrabold text-dark-blue">
+Data Model <span class="text-accent-orange">Design</span>
+</h1>
+<p class="text-base text-gray-500 mt-2 max-w-3xl">
+Partition Key & Clustering Key - Tối ưu hóa truy vấn theo use case
+</p>
+</div>
+
+<!-- Main Content Grid -->
+<div class="relative z-10 px-16 pb-12 flex-1">
+<div class="grid grid-cols-3 gap-5 h-full">
+<!-- Column 1: trip_locations -->
+<div class="schema-card h-full flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-map-marker-alt text-primary-blue text-xl"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">trip_locations</h3>
+<p class="text-xs text-gray-500">GPS Time-Series Data</p>
+</div>
+</div>
+
+<div class="flex-1 flex flex-col justify-between">
+<div class="space-y-3">
+<div class="bg-blue-50 rounded-lg p-3">
+<div class="flex items-center gap-2 mb-2">
+<i class="fas fa-key text-primary-blue text-sm"></i>
+<p class="text-xs font-bold text-gray-800">PRIMARY KEY</p>
+</div>
+<p class="text-sm text-gray-700"><span class="font-semibold">(trip_id, timestamp)</span></p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-server text-primary-blue text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Partition Key: trip_id</p>
+</div>
+<p class="text-xs text-gray-600">• Tất cả GPS points của cùng chuyến đi trên cùng node</p>
+<p class="text-xs text-gray-600">• Truy vấn 1 node duy nhất</p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-sort text-accent-orange text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Clustering Key: timestamp DESC</p>
+</div>
+<p class="text-xs text-gray-600">• Điểm mới nhất ở đầu partition</p>
+<p class="text-xs text-gray-600">• <span class="font-semibold">LIMIT 1</span> trả về vị trí mới nhất</p>
+</div>
+</div>
+
+<div class="sql-code">
+<span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> trip_locations<br/>
+<span class="sql-keyword">WHERE</span> trip_id = ?<br/>
+<span class="sql-keyword">ORDER BY</span> timestamp <span class="sql-keyword">ASC</span>;
+</div>
+</div>
+</div>
+
+<!-- Column 2: driver_analytics -->
+<div class="schema-card h-full flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-chart-line text-primary-green text-xl"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">driver_analytics</h3>
+<p class="text-xs text-gray-500">Weekly Performance Metrics</p>
+</div>
+</div>
+
+<div class="flex-1 flex flex-col justify-between">
+<div class="space-y-3">
+<div class="bg-green-50 rounded-lg p-3">
+<div class="flex items-center gap-2 mb-2">
+<i class="fas fa-key text-primary-green text-sm"></i>
+<p class="text-xs font-bold text-gray-800">PRIMARY KEY</p>
+</div>
+<p class="text-sm text-gray-700"><span class="font-semibold">(driver_id, week_start_date)</span></p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-server text-primary-green text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Partition Key: driver_id</p>
+</div>
+<p class="text-xs text-gray-600">• Toàn bộ dữ liệu tài xế trên 1 partition</p>
+<p class="text-xs text-gray-600">• Phân tích hiệu suất theo tuần</p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-sort text-accent-orange text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Clustering Key: week_start_date DESC</p>
+</div>
+<p class="text-xs text-gray-600">• Tuần mới nhất trước</p>
+<p class="text-xs text-gray-600">• Pattern: <span class="font-semibold">"xem tuần gần đây"</span></p>
+</div>
+</div>
+
+<div class="sql-code">
+<span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> driver_analytics<br/>
+<span class="sql-keyword">WHERE</span> driver_id = ?<br/>
+<span class="sql-keyword">AND</span> week_start_date >= '2024-01-01';
+</div>
+</div>
+</div>
+
+<!-- Column 3: alerts -->
+<div class="schema-card h-full flex flex-col">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+<i class="fas fa-bell text-accent-orange text-xl"></i>
+</div>
+<div>
+<h3 class="text-lg font-bold text-gray-800">alerts</h3>
+<p class="text-xs text-gray-500">Speeding & Proximity Alerts</p>
+</div>
+</div>
+
+<div class="flex-1 flex flex-col justify-between">
+<div class="space-y-3">
+<div class="bg-orange-50 rounded-lg p-3">
+<div class="flex items-center gap-2 mb-2">
+<i class="fas fa-key text-accent-orange text-sm"></i>
+<p class="text-xs font-bold text-gray-800">PRIMARY KEY</p>
+</div>
+<p class="text-sm text-gray-700"><span class="font-semibold">(driver_id, timestamp, alert_id)</span></p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-server text-accent-orange text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Partition Key: driver_id</p>
+</div>
+<p class="text-xs text-gray-600">• Mỗi driver có 1 partition riêng</p>
+<p class="text-xs text-gray-600">• Truy vấn cảnh báo theo tài xế</p>
+</div>
+
+<div class="bg-white rounded-lg p-3 border">
+<div class="flex items-start gap-2 mb-2">
+<i class="fas fa-sort text-accent-orange text-sm mt-0.5"></i>
+<p class="text-xs font-bold text-gray-800">Clustering Key: timestamp DESC</p>
+</div>
+<p class="text-xs text-gray-600">• Alert mới nhất luôn ở đầu</p>
+<p class="text-xs text-gray-600">• <span class="font-semibold">alert_id</span> đảm bảo uniqueness</p>
+</div>
+</div>
+
+<div class="sql-code">
+<span class="sql-keyword">SELECT</span> * <span class="sql-keyword">FROM</span> alerts<br/>
+<span class="sql-keyword">WHERE</span> driver_id = ?<br/>
+<span class="sql-keyword">AND</span> timestamp >= ?;
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
